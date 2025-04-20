@@ -145,6 +145,7 @@ const { execSync, execFile } = require('child_process');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const sudo = require('sudo-prompt');
 
 // Find Homebrew installation path and e2fsprogs binaries
 function findHomebrewPath() {

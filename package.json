@@ -9,14 +9,15 @@
   },
   "scripts": {
     "start": "electron-forge start",
-    "start-sudo": "sudo electron-forge start",
     "make": "electron-forge make",
     "package": "electron-forge make --platform=darwin",
     "version": "standard-version",
     "postversion": "git push --follow-tags && sleep 3 && npm run postversion:watch",
     "postversion:watch": "gh run watch $(gh run list --workflow='Build & Release macOS' --limit 1 --json databaseId --jq '.[0].databaseId')"
   },
-  "dependencies": {},
+  "dependencies": {
+    "sudo-prompt": "^9.2.1"
+  },
   "devDependencies": {
     "@types/electron": "latest",
     "electron": "^29.0.0",

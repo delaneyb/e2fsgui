@@ -22,8 +22,9 @@ A lightweight Electron application to **browse, read and rescue files** from Lin
 # Install dependencies
 npm install
 
-# Start the app (requires root for disk access)
-sudo npm start
+# Start the app
+npm start
+> On first run, you'll be prompted for your password to access disks via a system dialog
 ```
 
 The application expects the [Homebrew](https://brew.sh) package **e2fsprogs** to be installed:
@@ -110,6 +111,31 @@ If you push a tag and the required secrets are missing, the GitHub Actions workf
    in your repository directory to set all required secrets at once.
 
 > **Note:** Replace all placeholder values (like `Your Name`, `TEAMID`, `XXXXXXXXXX`) with your actual Apple Developer details. GitHub Actions secrets are always scoped to a specific repository (or organization, if set at that level). They are not global to your account. The `gh secret set -f .env` command, when run in a repo directory, sets secrets for that repo only.
+
+---
+
+## ⚠️ Important: PKCS#12 Certificate Format for macOS CI
+
+> **Warning:**
+>
+> When using a PKCS#12 (.p12) certificate for code signing in GitHub Actions or other macOS CI, you may encounter the error:
+>
+>     security: SecKeychainItemImport: MAC verification failed during PKCS12 import (wrong password?)
+>
+> This is **not** usually a password issue, but a format compatibility problem. Modern PKCS#12 files (created by recent OpenSSL or Keychain) use strong encryption (AES, SHA256, etc.) that the `security` tool on macOS runners cannot always import. You must re-export your certificate in the **legacy** PKCS#12 format (using 3DES/SHA1) for reliable import.
+>
+> See: [Stack Overflow: MAC verification failed during PKCS12 import (wrong password?)](https://stackoverflow.com/questions/70431528/mac-verification-failed-during-pkcs12-import-wrong-password-azure-devops)
+>
+> **How to fix:**
+> 1. Export your certificate and private key to PEM files.
+> 2. Re-export as legacy PKCS#12 with:
+>    ```sh
+>    openssl pkcs12 -export -legacy -in yourcert.pem -inkey yourkey.key -out legacy.p12 -name "Your Name"
+>    ```
+> 3. Base64-encode the legacy `.p12` and use that for your CI secrets.
+> 4. Use an empty password for the legacy `.p12` to simplify CI setup.
+>
+> This will prevent the import error and ensure smooth code signing in CI.
 
 ---
 
