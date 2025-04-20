@@ -3,7 +3,7 @@
   "version": "1.0.12",
   "description": "Simple Electron GUI for browsing ext2/3/4 Linux disks on macOS using e2fsprogs",
   "main": "main.js",
-  "productName": "LinuxDiskBrowser",
+  "productName": "e2fsgui",
   "scripts": {
     "start": "electron .",
     "build:zip": "node build-zip.js",

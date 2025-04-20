@@ -1,4 +1,4 @@
-# Linux Disk Browser - Instructions
+# e2fsgui - Instructions
 
 This application allows you to browse and copy files from Linux ext2/3/4 formatted disks on macOS. Due to macOS security restrictions, it cannot be run as a standard double-clickable application and requires using the Terminal.
 
@@ -12,22 +12,22 @@ This application allows you to browse and copy files from Linux ext2/3/4 formatt
 
 ## Running the Application
 
-1.  **Download & Extract:** Download the `LinuxDiskBrowser-vX.Y.Z.zip` file from the [Releases page](https://github.com/delaneyb/e2fsgui/releases) and extract it somewhere convenient (e.g., your Downloads folder).
+1.  **Download & Extract:** Download the `e2fsgui-vX.Y.Z.zip` file from the [Releases page](https://github.com/delaneyb/e2fsgui/releases) and extract it somewhere convenient (e.g., your Downloads folder).
 
 2.  **Open Terminal:** Launch the Terminal application (Applications > Utilities > Terminal).
 
-3.  **Navigate to the Directory:** Use the `cd` command to go into the extracted `LinuxDiskBrowser` directory. For example, if you extracted it to your Downloads folder:
+3.  **Navigate to the Directory:** Use the `cd` command to go into the extracted `e2fsgui` directory. For example, if you extracted it to your Downloads folder:
     ```bash
-    cd ~/Downloads/LinuxDiskBrowser-vX.Y.Z
+    cd ~/Downloads/e2fsgui-vX.Y.Z
     ```
     *(Replace `X.Y.Z` with the actual version number)*
 
 4.  **Run with sudo:** Execute the following command. You will be prompted for your macOS administrator password because the app needs root access to read disk devices.
     ```bash
-    sudo ./LinuxDiskBrowser.app/Contents/MacOS/Electron ./LinuxDiskBrowser.app/Contents/Resources/app
+    sudo ./e2fsprogs
     ```
 
-5.  **Use the App:** The Linux Disk Browser window should appear. You can now browse connected Linux disks and copy files.
+5.  **Use the App:** The e2fsgui window should appear. You can now browse connected Linux disks and copy files.
 
 ## Why sudo?
 

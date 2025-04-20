@@ -1,4 +1,4 @@
-# Linux Disk Browser (macOS)
+# e2fsgui (macOS)
 
 A lightweight Electron application to **browse, read and rescue files** from Linux ext2/3/4 disks on macOS using the `e2fsprogs` tool‑chain.
 
@@ -68,7 +68,7 @@ This will:
 2.  Copy the pre-built Electron application from `node_modules`.
 3.  Place the necessary app source files (`main.js`, `index.html`, etc.) inside the Electron app bundle.
 4.  Include `INSTRUCTIONS.md` for the user.
-5.  Create a `LinuxDiskBrowser-vX.Y.Z.zip` file in the `release/` directory.
+5.  Create a `e2fsgui-vX.Y.Z.zip` file in the `release/` directory.
 
 The resulting ZIP file is the distributable release artifact.
 
