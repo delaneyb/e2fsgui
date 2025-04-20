@@ -145,7 +145,6 @@ const { execSync, execFile } = require('child_process');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const sudo = require('sudo-prompt');
 
 // Find Homebrew installation path and e2fsprogs binaries
 function findHomebrewPath() {
@@ -229,12 +228,9 @@ function listDir(device, dirPath){
       return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'));
     }
     
-    // No sudo needed as we're already running as root
     const args = ['-R', `ls -p ${dirPath}`, `/dev/${device}`];
-    
     execFile(debugfsPath, args, (err, stdout) => {
       if(err) return reject(err);
-      
       console.log("Raw debugfs output:", stdout); // Debugging
       
       // Expected format from debugfs ls -p for each line:
@@ -296,9 +292,9 @@ function copyFile(device, srcPath, destDir){
       return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'));
     }
     
-    // No sudo needed as we're already running as root
     const dumpCmd = `dump -p ${srcPath} ${dest}`;
-    execFile(debugfsPath, ['-R', dumpCmd, `/dev/${device}`], (err) => {
+    const args = ['-R', dumpCmd, `/dev/${device}`];
+    execFile(debugfsPath, args, (err) => {
       if (err) return reject(new Error(`Failed to copy file: ${err.message}`));
       // if run under sudo, restore file ownership to original user
       const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10);
@@ -318,7 +314,9 @@ function copyDirectory(device, srcPath, destDir) {
       return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'));
     }
     const dumpCmd = `rdump ${srcPath} ${destDir}`;
-    execFile(debugfsPath, ['-R', dumpCmd, `/dev/${device}`], (err) => {
+    
+    const args = ['-R', dumpCmd, `/dev/${device}`];
+    execFile(debugfsPath, args, (err) => {
       if (err) return reject(new Error(`Failed to copy directory: ${err.message}`));
       // if run under sudo, restore ownership recursively
       const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10);
@@ -395,7 +393,7 @@ createApp({
       }
       
       this.status = `Found debugfs at ${this.debugfsPath}`;
-      this.status += "\nRunning with root privileges - disk access enabled";
+      this.status += "\nReady (running as root)";
       
       return true;
     },

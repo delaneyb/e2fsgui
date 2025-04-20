@@ -14,35 +14,17 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci
-      - name: Check required secrets
-        run: ./check-required-secrets.sh
-        env:
-          MAC_CODESIGN_IDENTITY: ${{ secrets.MAC_CODESIGN_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      - name: Import code signing certificate
-        env:
-          MAC_CERTIFICATE: ${{ secrets.MAC_CERTIFICATE }}
-        run: |
-          echo "$MAC_CERTIFICATE" | base64 --decode > certificate.p12
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security import certificate.p12 -k build.keychain -P "" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
-      - name: Make
-        env:
-          MAC_CODESIGN_IDENTITY: ${{ secrets.MAC_CODESIGN_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npm run make
-      - name: Upload artifacts
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Release ZIP
+        run: npm run build:zip
+
+      - name: Upload Release ZIP
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: out/make/**/*.dmg
+          files: release/*.zip
           draft: true
           prerelease: false 
