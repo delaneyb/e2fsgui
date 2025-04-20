@@ -1,6 +1,6 @@
 {
   "name": "e2fs-gui",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Simple Electron GUI for browsing ext2/3/4 Linux disks on macOS using e2fsprogs",
   "main": "main.js",
   "productName": "e2fsgui",
