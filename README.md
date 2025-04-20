@@ -2,7 +2,7 @@
 
 A lightweight Electron application to **browse, read and rescue files** from Linux ext2/3/4 disks on macOS using the `e2fsprogs` tool‑chain.
 
-![screenshot](https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/e2fs-gui/main/.github/screenshot.png)
+![screenshot](https://raw.githubusercontent.com/delaneyb/e2fsgui/main/.github/screenshot.png)
 
 ---
 
@@ -56,7 +56,6 @@ MAC_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
 APPLE_ID="name@example.com"
 APPLE_PASSWORD="app‑specific‑password"
 APPLE_TEAM_ID="XXXXXXXXXX"
-GITHUB_TOKEN="ghp_xxx"   # Fine grained PAT with repo access
 ```
 
 ### Manual make / publish
@@ -71,15 +70,66 @@ npm run publish
 
 ---
 
-## Continuous Delivery
+## Automated Releases with GitHub Actions
 
-A ready‑to‑use **GitHub Actions** workflow (`.github/workflows/build.yml`) automatically:
+This project uses **GitHub Actions** to automatically build, sign, notarize, and publish macOS `.dmg` releases when you push a version tag.
 
-* Installs dependencies & caches `node_modules`
-* Runs `npm run make` on `macos-latest`
-* Uploads generated artifacts as release assets
+### How it works
+- When you push a tag like `v1.2.3` to GitHub, the workflow in `.github/workflows/build.yml` runs on a macOS runner.
+- The workflow:
+  1. Installs dependencies
+  2. Builds, signs, and notarizes the app using your Apple credentials
+  3. Uploads the `.dmg` as a draft release on GitHub
 
-Just push a new tag (created via `npm run version`) to trigger it.
+### Required Secrets
+You must set the following **repository secrets** (in Settings → Secrets and variables → Actions):
+- `MAC_CODESIGN_IDENTITY` — e.g. `Developer ID Application: Your Name (TEAMID)`
+- `APPLE_ID` — your Apple Developer email
+- `APPLE_PASSWORD` — app-specific password from https://appleid.apple.com
+- `APPLE_TEAM_ID` — your 10-character Apple Team ID
+
+#### Setting secrets with the GitHub CLI
+You can set these secrets from your terminal (in your repo directory) using the [GitHub CLI](https://cli.github.com/):
+
+```bash
+gh secret set MAC_CODESIGN_IDENTITY -b"Developer ID Application: Your Name (TEAMID)"
+gh secret set APPLE_ID -b"your@email.com"
+gh secret set APPLE_PASSWORD -b"your-app-specific-password"
+gh secret set APPLE_TEAM_ID -b"52G288JVFT"
+```
+
+### How to trigger a release
+1. Bump the version and create a tag:
+   ```bash
+   npm run version
+   git push --follow-tags
+   ```
+2. The workflow will run and create a draft release with the DMG attached.
+
+### How to build locally
+- You can always build and sign locally (requires your Apple credentials as env vars):
+  ```bash
+  npm run make
+  ```
+- To publish a release from your machine (needs the same env vars):
+  ```bash
+  npm run publish
+  ```
+
+---
+
+## Setting GitHub Actions Secrets
+
+If you push a tag and the required secrets are missing, the GitHub Actions workflow will fail early and print a clear error message. It will instruct you to:
+
+1. Populate a `.env` file from `.env.example` with your Apple credentials.
+2. Run:
+   ```bash
+   gh secret set -f .env
+   ```
+   in your repository directory to set all required secrets at once.
+
+> **Note:** Replace all placeholder values (like `Your Name`, `TEAMID`, `XXXXXXXXXX`) with your actual Apple Developer details. GitHub Actions secrets are always scoped to a specific repository (or organization, if set at that level). They are not global to your account. The `gh secret set -f .env` command, when run in a repo directory, sets secrets for that repo only.
 
 ---
 
@@ -100,9 +150,3 @@ Just push a new tag (created via `npm run version`) to trigger it.
 ## License
 
 This project is released under the MIT license.
-
----
-
-## Disclaimer
-
-This tool **reads** disks – it does **not** write to Linux filesystems. However it still deals with low‑level disk access – use at your own risk!  Always work on **read‑only clones** when possible. 

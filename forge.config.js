@@ -39,7 +39,7 @@ module.exports = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: 'YOUR_GITHUB_USERNAME', // <<-- REPLACE
+          owner: 'delaneyb',
           name: 'e2fs-gui',
         },
         prerelease: false,
