@@ -7,13 +7,14 @@
   "scripts": {
     "start": "electron .",
     "build:zip": "node build-zip.js",
-    "release": "npm version patch && git push --follow-tags"
+    "release": "standard-version && git push --follow-tags && sleep 3 && gh run watch $(gh run list --workflow='Build & Release macOS' --limit 1 --json databaseId --jq '.[0].databaseId')"
   },
   "devDependencies": {
-    "@types/electron": "latest",
-    "electron": "^29.0.0",
+    "@types/electron": "^1.6.12",
+    "archiver": "^7.0.1",
+    "electron": "^35.2.0",
     "electron-reloader": "^1.2.3",
-    "fs-extra": "^11.1.0",
-    "archiver": "^5.3.0"
+    "fs-extra": "^11.3.0",
+    "standard-version": "^9.5.0"
   }
 }
