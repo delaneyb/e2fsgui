@@ -13,7 +13,7 @@
     "make": "electron-forge make",
     "package": "electron-forge make --platform=darwin",
     "version": "standard-version",
-    "postversion": "git push --follow-tags && npm run make"
+    "postversion": "git push --follow-tags && gh run watch"
   },
   "dependencies": {},
   "devDependencies": {
