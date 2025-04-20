@@ -58,63 +58,43 @@ APPLE_PASSWORD="app‑specific‑password"
 APPLE_TEAM_ID="XXXXXXXXXX"
 ```
 
-### Manual make / publish
+### Manual local build
 
 ```bash
 # Build signed + notarised DMG locally (macOS only)
 npm run make        # -> out/make/*.dmg
-
-# Publish the artifacts to GitHub (needs GITHUB_TOKEN)
-npm run publish
 ```
 
----
-
-## Automated Releases with GitHub Actions
-
-This project uses **GitHub Actions** to automatically build, sign, notarize, and publish macOS `.dmg` releases when you push a version tag.
-
-### How it works
-- When you push a tag like `v1.2.3` to GitHub, the workflow in `.github/workflows/build.yml` runs on a macOS runner.
-- The workflow:
-  1. Installs dependencies
-  2. Builds, signs, and notarizes the app using your Apple credentials
-  3. Uploads the `.dmg` as a draft release on GitHub
-
-### Required Secrets
-You must set the following **repository secrets** (in Settings → Secrets and variables → Actions):
-- `MAC_CODESIGN_IDENTITY` — e.g. `Developer ID Application: Your Name (TEAMID)`
-- `APPLE_ID` — your Apple Developer email
-- `APPLE_PASSWORD` — app-specific password from https://appleid.apple.com
-- `APPLE_TEAM_ID` — your 10-character Apple Team ID
-
-#### Setting secrets with the GitHub CLI
-You can set these secrets from your terminal (in your repo directory) using the [GitHub CLI](https://cli.github.com/):
-
-```bash
-gh secret set MAC_CODESIGN_IDENTITY -b"Developer ID Application: Your Name (TEAMID)"
-gh secret set APPLE_ID -b"your@email.com"
-gh secret set APPLE_PASSWORD -b"your-app-specific-password"
-gh secret set APPLE_TEAM_ID -b"52G288JVFT"
-```
+> **Note:** Local builds are for your own testing. Only the GitHub Actions workflow will publish a release to GitHub.
 
 ### How to trigger a release
-1. Bump the version and create a tag:
-   ```bash
-   npm run version
-   git push --follow-tags
-   ```
-2. The workflow will run and create a draft release with the DMG attached.
+
+To release a new version:
+
+```bash
+npm run version
+```
+
+This will:
+- Bump the version, update the changelog, commit, and create a tag (using `standard-version`)
+- **Automatically push the commit and tag to GitHub** (handled by the `postversion` script)
+- Build the app locally for your own use
+
+**You do NOT need to run `git push --follow-tags` manually.**
+
+The push will trigger the GitHub Actions workflow, which will build, sign, notarize, and upload a draft release with the DMG attached.
+
+> **How and why this works:**
+> The `postversion` script in `package.json` runs automatically after `npm run version`. It pushes the commit and tag to GitHub, which triggers the release workflow. This ensures you never forget to push the tag, and keeps the process simple and reliable.
 
 ### How to build locally
-- You can always build and sign locally (requires your Apple credentials as env vars):
-  ```bash
-  npm run make
-  ```
-- To publish a release from your machine (needs the same env vars):
-  ```bash
-  npm run publish
-  ```
+
+You can always build and sign locally (requires your Apple credentials as env vars):
+```bash
+npm run make
+```
+
+This will NOT publish a release to GitHub; it only creates a DMG/ZIP for your own use.
 
 ---
 
