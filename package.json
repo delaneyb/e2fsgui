@@ -13,7 +13,8 @@
     "make": "electron-forge make",
     "package": "electron-forge make --platform=darwin",
     "version": "standard-version",
-    "postversion": "git push --follow-tags && gh run watch"
+    "postversion": "git push --follow-tags && sleep 3 && npm run postversion:watch",
+    "postversion:watch": "gh run watch $(gh run list --workflow='Build & Release macOS' --limit 1 --json databaseId --jq '.[0].databaseId')"
   },
   "dependencies": {},
   "devDependencies": {
