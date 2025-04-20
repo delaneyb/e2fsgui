@@ -1,4 +1,6 @@
 name: Build & Release macOS
+permissions:
+  contents: write
 
 on:
   push:
