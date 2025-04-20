@@ -16,19 +16,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Check required secrets
-        run: |
-          missing=()
-          for var in MAC_CODESIGN_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-            if [ -z "${{ secrets[$var] }}" ]; then
-              missing+=("$var")
-            fi
-          done
-          if [ ${#missing[@]} -ne 0 ]; then
-            echo "::error::Missing required secrets: ${missing[*]}"
-            echo "Populate a .env file from .env.example and run:"
-            echo "  gh secret set -f .env"
-            exit 1
-          fi
+        run: ./check-required-secrets.sh
       - name: Make
         env:
           MAC_CODESIGN_IDENTITY: ${{ secrets.MAC_CODESIGN_IDENTITY }}

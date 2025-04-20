@@ -12,9 +12,8 @@
     "start-sudo": "sudo electron-forge start",
     "make": "electron-forge make",
     "package": "electron-forge make --platform=darwin",
-    "publish": "electron-forge publish",
     "version": "standard-version",
-    "postversion": "git push --follow-tags && npm run make && npm run publish"
+    "postversion": "git push --follow-tags && npm run make"
   },
   "dependencies": {},
   "devDependencies": {
