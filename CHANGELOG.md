@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/delaneyb/e2fsgui/compare/v1.0.18...v1.1.0) (2025-04-21)
+
+
+### Features
+
+* add debugfs utility functions and enhance index.html with new features ([609e320](https://github.com/delaneyb/e2fsgui/commit/609e3206cc7b7bdedbee4f6e4b47b8c3a3d463ee))
+
 ### [1.0.18](https://github.com/delaneyb/e2fsgui/compare/v1.0.17...v1.0.18) (2025-04-21)
 
 
