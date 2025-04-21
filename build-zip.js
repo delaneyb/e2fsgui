@@ -32,8 +32,8 @@ if [ ! -x "$ELECTRON_BIN" ]; then
   exit 1
 fi
 
-# Remove quarantine attribute from Electron.app
-xattr -d -f com.apple.quarantine "$ELECTRON_DIST"
+# Remove quarantine attribute from Electron.app, ignore if not present
+xattr -d com.apple.quarantine "$ELECTRON_DIST" 2>/dev/null || true
 
 echo "Launching e2fsgui..."
 exec sudo "$ELECTRON_BIN" "$APP_DIR" "$@"
