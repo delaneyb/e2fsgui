@@ -24,7 +24,8 @@ fi
 
 # Resolve directories
 DIR="$(cd "$(dirname "$0")" && pwd)"
-ELECTRON_BIN="$DIR/electron-dist/Electron.app/Contents/MacOS/Electron"
+ELECTRON_DIST="$DIR/electron-dist/Electron.app"
+ELECTRON_BIN="$ELECTRON_DIST/Contents/MacOS/Electron"
 if [ ! -x "$ELECTRON_BIN" ]; then
   echo "Error: Electron binary not found at $ELECTRON_BIN" >&2
   exit 1
@@ -32,7 +33,7 @@ fi
 APP_DIR="$DIR/app"
 
 # Remove quarantine attribute which causes "app is damaged"
-xattr -d com.apple.quarantine "$ELECTRON_BIN" "$APP_DIR"
+xattr -d com.apple.quarantine "$ELECTRON_DIST" "$APP_DIR"
 
 # Launch with sudo for raw disk access
 echo "Launching e2fsgui…"
