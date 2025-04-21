@@ -80,18 +80,26 @@ async function build() {
 
 # Simple launcher script for e2fsgui
 
+# If Homebrew is installed, prepend e2fsprogs keg-only paths so debugfs can be found
+if command -v brew >/dev/null 2>&1; then
+  PREFIX=$(brew --prefix)
+  export PATH="$PREFIX/opt/e2fsprogs/bin:$PREFIX/opt/e2fsprogs/sbin:$PATH"
+fi
+
+# Check for debugfs binary
 if ! command -v debugfs >/dev/null 2>&1; then
-	echo "Error: e2fsprogs (debugfs) not found. Install with: brew install e2fsprogs" >&2
-	exit 1
+  echo "Error: e2fsprogs (debugfs) not found. Install with: brew install e2fsprogs" >&2
+  exit 1
 fi
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$DIR/app"
 ELECTRON_BIN="$DIR/electron-dist/Electron.app/Contents/MacOS/Electron"
 
+# Verify Electron binary exists
 if [ ! -x "$ELECTRON_BIN" ]; then
-	echo "Error: Electron binary not found at $ELECTRON_BIN" >&2
-	exit 1
+  echo "Error: Electron binary not found at $ELECTRON_BIN" >&2
+  exit 1
 fi
 
 echo "Launching e2fsgui…"
