@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.14](https://github.com/delaneyb/e2fsgui/compare/v1.0.13...v1.0.14) (2025-04-21)
+
+
+### Bug Fixes
+
+* enhance build script to prepend Homebrew paths for e2fsprogs and improve error handling for missing binaries ([6adb71a](https://github.com/delaneyb/e2fsgui/commit/6adb71ad12e50e23ad91225c3f0fbfe5980ea8b3))
+
 ### [1.0.13](https://github.com/delaneyb/e2fsgui/compare/v1.0.12...v1.0.13) (2025-04-20)
 
 ### [1.0.12](https://github.com/delaneyb/e2fsgui/compare/v1.0.11...v1.0.12) (2025-04-20)
