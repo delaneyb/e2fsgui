@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/delaneyb/e2fsgui/compare/v1.1.0...v1.2.0) (2025-04-21)
+
+
+### Features
+
+* include debugfs-utils.js in the build process ([cb73fc2](https://github.com/delaneyb/e2fsgui/commit/cb73fc2567606876cef0cb72ca4492900fc935d2))
+
 ## [1.1.0](https://github.com/delaneyb/e2fsgui/compare/v1.0.18...v1.1.0) (2025-04-21)
 
 
