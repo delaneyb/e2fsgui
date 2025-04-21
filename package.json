@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@types/electron": "^1.6.12",
+    "@types/node": "^22.14.1",
     "archiver": "^7.0.1",
     "electron": "^35.2.0",
     "electron-reloader": "^1.2.3",
