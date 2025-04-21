@@ -1,601 +1,746 @@
 <!doctype html>
 <html>
+
 <head>
-<meta charset="utf-8">
-<title>Linux Disk Browser</title>
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-<style>
-  body{margin:0;display:flex;height:100vh;font:14px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;color:#222}
-  #app{display:flex;flex:1;flex-direction:column}
-  .container{display:flex;flex:1;overflow:hidden}
-  #sidebar{width:220px;border-right:1px solid #ddd;overflow:auto;background:#fafafa}
-  #sidebar div{padding:10px 12px;cursor:pointer;border-bottom:1px solid #eee}
-  #sidebar div:hover{background:#f0f0f0}
-  #sidebar .active{background:#dbeaff;font-weight:600}
-  #main{flex:1;display:flex;flex-direction:column;overflow:auto}
-  #crumb{position:sticky;top:0;padding:8px 12px;border-bottom:1px solid #ddd;background:#f7f7f7;font-size:13px;color:#666;user-select:none;z-index:2;display:flex;align-items:center;flex-wrap}
-  table{border-collapse:collapse;width:100%}
-  tr{border-bottom:1px solid #eee}
-  td,th{padding:6px 8px;text-align:left}
-  tr:hover{background:#f9f9f9}
-  button{padding:4px 10px;border:1px solid #888;border-radius:4px;background:#fff;cursor:pointer}
-  button:hover{background:#e6e6e6}
-  .status-bar{padding:8px 12px;background:#f0f0f0;border-top:1px solid #ddd;font-size:13px;color:#666;white-space:pre-wrap}
-  .error{color:#d32f2f;background:#ffebee;padding:8px 12px;white-space:pre-wrap;overflow-wrap:break-word}
-  .loading-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center;z-index:10}
-  .loader{border:3px solid #f3f3f3;border-top:3px solid #3498db;border-radius:50%;width:20px;height:20px;animation:spin 1s linear infinite;margin-right:10px}
-  @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-  [v-cloak]{display:none}
+	<meta charset="utf-8">
+	<title>e2fsgui</title>
+	<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+	<style>
+		body {
+			margin: 0;
+			display: flex;
+			height: 100vh;
+			font: 14px/1.4 -apple-system, Segoe UI, Roboto, sans-serif;
+			color: #222;
+		}
 
-  .crumb-sep {
-    margin: 0 4px;
-    color: #666;
-  }
-  .crumb-segment {
-    display: inline-block;
-    background: gainsboro;
-    border-radius: 4px;
-    padding: 2px 6px;
-    margin: 0 2px;
-    cursor: pointer;
-  }
-  .crumb-segment.current {
-    background: #ccc;
-    cursor: default;
-  }
-  .crumb-segment a {
-    color: inherit;
-    text-decoration: none;
-  }
-  table thead th {
-    position: sticky;
-    top: 40px;
-    background: #fafafa;
-    z-index: 1;
-  }
-  th:first-child, td:first-child {
-    width: 32px;
-    text-align: center;
-  }
-  th:nth-child(2), td:nth-child(2) {
-    min-width: 150px;
-  }
-  th:nth-child(3), td:nth-child(3) {
-    min-width: 80px;
-  }
-</style>
+		#app {
+			display: flex;
+			flex: 1;
+			flex-direction: column;
+		}
+
+		.container {
+			display: flex;
+			flex: 1;
+			overflow: hidden;
+		}
+
+		#sidebar {
+			width: 220px;
+			border-right: 1px solid #ddd;
+			overflow: auto;
+			background: #fafafa;
+		}
+
+		#sidebar div {
+			padding: 10px 12px;
+			cursor: pointer;
+			border-bottom: 1px solid #eee;
+		}
+
+		#sidebar div:hover {
+			background: #f0f0f0;
+		}
+
+		#sidebar .active {
+			background: #dbeaff;
+			font-weight: 600;
+		}
+
+		#main {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			overflow: auto;
+		}
+
+		#crumb {
+			position: sticky;
+			top: 0;
+			padding: 8px 12px;
+			border-bottom: 1px solid #ddd;
+			background: #f7f7f7;
+			font-size: 13px;
+			color: #666;
+			user-select: none;
+			z-index: 2;
+			display: flex;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+
+		table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+
+		tr {
+			border-bottom: 1px solid #eee;
+		}
+
+		td,
+		th {
+			padding: 6px 8px;
+			text-align: left;
+		}
+
+		tr:hover {
+			background: #f9f9f9;
+		}
+
+		button {
+			padding: 4px 10px;
+			border: 1px solid #888;
+			border-radius: 4px;
+			background: #fff;
+			cursor: pointer;
+		}
+
+		button:hover {
+			background: #e6e6e6;
+		}
+
+		.status-bar {
+			padding: 8px 12px;
+			background: #f0f0f0;
+			border-top: 1px solid #ddd;
+			font-size: 13px;
+			color: #666;
+			white-space: pre-wrap;
+		}
+
+		.error {
+			color: #d32f2f;
+			background: #ffebee;
+			padding: 8px 12px;
+			white-space: pre-wrap;
+			overflow-wrap: break-word;
+		}
+
+		.loading-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(255, 255, 255, 0.7);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 10;
+		}
+
+		.loader {
+			border: 3px solid #f3f3f3;
+			border-top: 3px solid #3498db;
+			border-radius: 50%;
+			width: 20px;
+			height: 20px;
+			animation: spin 1s linear infinite;
+			margin-right: 10px;
+		}
+
+		@keyframes spin {
+			0% {
+				transform: rotate(0deg);
+			}
+
+			100% {
+				transform: rotate(360deg);
+			}
+		}
+
+		[v-cloak] {
+			display: none;
+		}
+
+		.crumb-sep {
+			margin: 0 4px;
+			color: #666;
+		}
+
+		.crumb-segment {
+			display: inline-block;
+			background: gainsboro;
+			border-radius: 4px;
+			padding: 2px 6px;
+			margin: 0 2px;
+			cursor: pointer;
+		}
+
+		.crumb-segment.current {
+			background: #ccc;
+			cursor: default;
+		}
+
+		.crumb-segment a {
+			color: inherit;
+			text-decoration: none;
+		}
+
+		table thead th {
+			position: sticky;
+			top: 40px;
+			background: #fafafa;
+			z-index: 1;
+		}
+
+		th:first-child,
+		td:first-child {
+			width: 32px;
+			text-align: center;
+		}
+
+		th:nth-child(2),
+		td:nth-child(2) {
+			min-width: 150px;
+		}
+
+		th:nth-child(3),
+		td:nth-child(3) {
+			min-width: 80px;
+		}
+	</style>
 </head>
+
 <body>
-<div id="app" v-cloak>
-  <div class="container">
-    <div id="sidebar">
-      <div v-for="d in disks" :key="d.id" :class="{active: currentDev===d.id}" @click="openDisk(d)">{{ d.name }} ({{ d.size }})</div>
-      <div v-if="disks.length === 0 && !loading" style="color:#666;cursor:default;font-style:italic">No Linux partitions found</div>
-    </div>
-    <div id="main">
-      <div id="crumb">
-        <template v-if="currentDev">
-          <span v-for="(seg, idx) in crumbSegments" :key="idx">
-            <span v-if="idx > 0" class="crumb-sep">/</span>
-            <span :class="['crumb-segment', { current: seg.path === currentPath } ]">
-              <template v-if="seg.path === currentPath">{{ seg.name }}</template>
-              <a v-else href="#" @click.prevent="openDir(seg.path)">{{ seg.name }}</a>
-            </span>
-          </span>
-        </template>
-        <template v-else>Select a Linux disk…</template>
-      </div>
-      <div v-if="error" class="error">{{ error }}</div>
-      <table v-if="currentDev">
-        <thead>
-          <tr>
-            <th></th>
-            <th @click="sortBy('name')" style="cursor:pointer">
-              Name <span v-if="sortKey==='name'">{{ sortAsc ? '▲' : '▼' }}</span>
-            </th>
-            <th @click="sortBy('size')" style="cursor:pointer">
-              Size <span v-if="sortKey==='size'">{{ sortAsc ? '▲' : '▼' }}</span>
-            </th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="currentPath!=='/'" @click="upOne" style="cursor:pointer"><td>⬆️</td><td colspan="3">..</td></tr>
-          <tr v-for="r in sortedRows" :key="r.name" @click="r.isDir ? openDir(r.name) : null" :style="r.isDir ? 'cursor:pointer' : ''">
-            <td>{{ r.isDir ? '📁' : '📄' }}</td>
-            <td>{{ r.name }}</td>
-            <td>{{ r.isDir ? '' : r.size }}</td>
-            <td>
-              <!-- directory save button -->
-              <button v-if="r.isDir" @click.stop="saveDirectory(r)">{{ r.saveStatus || (r.saved ? '✔ Saved' : 'Save') }}</button>
-              <!-- file save button -->
-              <button v-else @click.stop="saveFile(r)">{{ r.saveStatus || (r.saved ? '✔ Saved' : 'Save') }}</button>
-            </td>
-          </tr>
-          <tr v-if="rows.length === 0 && !loading && !error">
-            <td colspan="4" style="text-align:center;padding:20px;color:#666">
-              This directory is empty
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  
-  <div class="status-bar">{{ status }}</div>
-  
-  <div v-if="loading" class="loading-overlay">
-    <div class="loader"></div>
-    <div>{{ status }}</div>
-  </div>
-</div>
+	<div id="app" v-cloak>
+		<div class="container">
+			<div id="sidebar">
+				<div v-for="d in disks" :key="d.id" :class="{active: currentDev===d.id}" @click="openDisk(d)">{{ d.name }} ({{ d.size }})</div>
+				<div v-if="disks.length === 0 && !loading" style="color:#666;cursor:default;font-style:italic">No Linux partitions found</div>
+			</div>
+			<div id="main">
+				<div id="crumb">
+					<template v-if="currentDev">
+						<span v-for="(seg, idx) in crumbSegments" :key="idx">
+							<span v-if="idx > 0" class="crumb-sep">/</span>
+							<span :class="['crumb-segment', { current: seg.path === currentPath } ]">
+								<template v-if="seg.path === currentPath">{{ seg.name }}</template>
+								<a v-else href="#" @click.prevent="openDir(seg.path)">{{ seg.name }}</a>
+							</span>
+						</span>
+					</template>
+					<template v-else>Select a Linux disk…</template>
+				</div>
+				<div v-if="error" class="error">{{ error }}</div>
+				<table v-if="currentDev">
+					<thead>
+						<tr>
+							<th></th>
+							<th @click="sortBy('name')" style="cursor:pointer">
+								Name <span v-if="sortKey==='name'">{{ sortAsc ? '▲' : '▼' }}</span>
+							</th>
+							<th @click="sortBy('size')" style="cursor:pointer">
+								Size <span v-if="sortKey==='size'">{{ sortAsc ? '▲' : '▼' }}</span>
+							</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-if="currentPath!=='/'" @click="upOne" style="cursor:pointer">
+							<td>⬆️</td>
+							<td colspan="3">..</td>
+						</tr>
+						<tr v-for="r in sortedRows" :key="r.name" @click="r.isDir ? openDir(r.name) : null" :style="r.isDir ? 'cursor:pointer' : ''">
+							<td>{{ r.isDir ? '📁' : '📄' }}</td>
+							<td>{{ r.name }}</td>
+							<td>{{ r.isDir ? '' : r.size }}</td>
+							<td>
+								<!-- directory save button -->
+								<button v-if="r.isDir" @click.stop="saveDirectory(r)">{{ r.saveStatus || (r.saved ? '✔ Saved' : 'Save') }}</button>
+								<!-- file save button -->
+								<button v-else @click.stop="saveFile(r)">{{ r.saveStatus || (r.saved ? '✔ Saved' : 'Save') }}</button>
+							</td>
+						</tr>
+						<tr v-if="rows.length === 0 && !loading && !error">
+							<td colspan="4" style="text-align:center;padding:20px;color:#666">
+								This directory is empty
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 
-<script>
-const { execSync, execFile } = require('child_process');
-const path = require('path');
-const os = require('os');
-const fs = require('fs');
+		<div class="status-bar">{{ status }}</div>
 
-// Find Homebrew installation path and e2fsprogs binaries
-function findHomebrewPath() {
-  try {
-    // Try to get the Homebrew prefix
-    const brewPrefix = execSync('brew --prefix').toString().trim();
-    return brewPrefix;
-  } catch (e) {
-    console.error("Error finding Homebrew:", e);
-    // Fallbacks for common Homebrew locations
-    if (fs.existsSync('/opt/homebrew')) {
-      return '/opt/homebrew'; // M1/M2 Mac location
-    } else if (fs.existsSync('/usr/local/Homebrew')) {
-      return '/usr/local'; // Intel Mac location
-    }
-    return null;
-  }
-}
+		<div v-if="loading" class="loading-overlay">
+			<div class="loader"></div>
+			<div>{{ status }}</div>
+		</div>
+	</div>
 
-// Get full path to a Homebrew-installed program
-function getBrewBinPath(program) {
-  const brewPath = findHomebrewPath();
-  if (!brewPath) return null;
-  
-  // Check e2fsprogs paths - binaries might be in bin/ or sbin/
-  const e2fsprogsPrefix = path.join(brewPath, 'opt', 'e2fsprogs');
-  
-  const possiblePaths = [
-    path.join(e2fsprogsPrefix, 'sbin', program),
-    path.join(e2fsprogsPrefix, 'bin', program),
-    path.join(brewPath, 'sbin', program),
-    path.join(brewPath, 'bin', program),
-  ];
-  
-  for (const binPath of possiblePaths) {
-    if (fs.existsSync(binPath)) {
-      return binPath;
-    }
-  }
-  
-  return null;
-}
+	<script>
+		const { execSync, execFile } = require('child_process')
+		const path = require('path')
+		const os = require('os')
+		const fs = require('fs')
 
-function plistXmlToJson(xmlStr){
-  const buf = execSync('plutil -convert json -o - -', { input: xmlStr });
-  return JSON.parse(buf.toString());
-}
+		// Find Homebrew installation path and e2fsprogs binaries
+		function findHomebrewPath() {
+			try {
+				// Try to get the Homebrew prefix
+				const brewPrefix = execSync('brew --prefix').toString().trim()
+				return brewPrefix
+			} catch (e) {
+				console.error("Error finding Homebrew:", e)
+				// Fallbacks for common Homebrew locations
+				if (fs.existsSync('/opt/homebrew')) {
+					return '/opt/homebrew' // M1/M2 Mac location
+				} else if (fs.existsSync('/usr/local/Homebrew')) {
+					return '/usr/local' // Intel Mac location
+				}
+				return null
+			}
+		}
 
-function listLinuxDisks(){
-  const xml = execSync('diskutil list -plist').toString();
-  const data = plistXmlToJson(xml);
-  if(!data.AllDisksAndPartitions) return [];
-  return data.AllDisksAndPartitions.flatMap(d => {
-    // Make sure this disk has partitions
-    if (!d.Partitions) return [];
-    
-    // Filter and map partitions with Linux content
-    return d.Partitions
-      .filter(p => /Linux/i.test(p.Content || ''))
-      .map(p => ({
-        id: p.DeviceIdentifier,
-        name: p.VolumeName || p.DeviceIdentifier,
-        size: p.Size ? formatSize(p.Size) : 'Unknown',
-        sizeBytes: p.Size || 0
-      }));
-  });
-}
+		// Get full path to a Homebrew-installed program
+		function getBrewBinPath(program) {
+			const brewPath = findHomebrewPath()
+			if (!brewPath) return null
 
-// Helper function to format bytes to readable size
-function formatSize(bytes) {
-  if (bytes === 0) return '0 B';
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i];
-}
+			// Check e2fsprogs paths - binaries might be in bin/ or sbin/
+			const e2fsprogsPrefix = path.join(brewPath, 'opt', 'e2fsprogs')
 
-function listDir(device, dirPath){
-  return new Promise((resolve,reject)=>{
-    const debugfsPath = getBrewBinPath('debugfs');
-    if (!debugfsPath) {
-      return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'));
-    }
-    
-    const args = ['-R', `ls -p ${dirPath}`, `/dev/${device}`];
-    execFile(debugfsPath, args, (err, stdout) => {
-      if(err) return reject(err);
-      console.log("Raw debugfs output:", stdout); // Debugging
-      
-      // Expected format from debugfs ls -p for each line:
-      // /INODE/MODE/UID/GID/FILENAME[/]/SIZE/
-      // E.g.: /11/040700/0/0/lost+found//
-      // E.g.: /12/100644/0/0/label/16/
-      const rows = [];
-      
-      // Skip the header lines (debugfs version info)
-      const outputLines = stdout.split('\n').filter(line => 
-        line.trim() !== '' && 
-        !line.startsWith('debugfs') && 
-        !line.includes('1-Jan-2025')
-      );
-      
-      outputLines.forEach(line => {
-        // Parse the line according to debugfs ls -p format
-        const match = line.match(/^\s*\/(\d+)\/(\d+)\/(\d+)\/(\d+)\/(.+?)(\/{2}|\/(\d+)\/)$/);
-        if (match) {
-          const inode = match[1];
-          const mode = match[2];
-          const uid = match[3];
-          const gid = match[4];
-          let name = match[5].trim(); // Trim whitespace around name
+			const possiblePaths = [
+				path.join(e2fsprogsPrefix, 'sbin', program),
+				path.join(e2fsprogsPrefix, 'bin', program),
+				path.join(brewPath, 'sbin', program),
+				path.join(brewPath, 'bin', program),
+			]
 
-          // Handle potential extra slashes if name itself contained slashes
-          // debugfs might escape them, or handle them differently. This is a basic guess.
-          name = name.replace(/\\\//g, '/'); // Simple attempt to unescape
+			for (const binPath of possiblePaths) {
+				if (fs.existsSync(binPath)) {
+					return binPath
+				}
+			}
 
-          if (name === '.' || name === '..') {
-            return; // skip . and .. entries
-          }
-          const isDir = match[6] === '//';
-          const rawSize = isDir ? 0 : parseInt(match[7] || '0', 10);
-          const size = isDir ? '' : formatSize(rawSize);
-          
-          rows.push({
-            name,
-            isDir,
-            size,
-            inode,
-            mode,
-            uid,
-            gid,
-            rawSize
-          });
-        } else {
-          console.warn("Failed to parse debugfs line:", line);
-        }
-      });
-      
-      resolve(rows);
-    });
-  });
-}
+			return null
+		}
 
-function copyFile(device, srcPath, destDir){
-  return new Promise((resolve,reject)=>{
-    const dest = path.join(destDir, path.basename(srcPath));
-    
-    // Use debugfs's 'dump' command to get the file content
-    const debugfsPath = getBrewBinPath('debugfs');
-    if (!debugfsPath) {
-      return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'));
-    }
-    
-    const dumpCmd = `dump -p ${srcPath} ${dest}`;
-    const args = ['-R', dumpCmd, `/dev/${device}`];
-    execFile(debugfsPath, args, (err) => {
-      if (err) return reject(new Error(`Failed to copy file: ${err.message}`));
-      // if run under sudo, restore file ownership to original user
-      const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10);
-      const sudoGid = process.env.SUDO_GID && parseInt(process.env.SUDO_GID, 10);
-      if (sudoUid && sudoGid && !isNaN(sudoUid) && !isNaN(sudoGid)) {
-        try {
-          fs.chownSync(dest, sudoUid, sudoGid);
-        } catch (chownErr) {
-          console.warn(`Failed to change ownership of ${dest}: ${chownErr.message}`);
-        }
-      }
-      resolve(dest);
-    });
-  });
-}
+		function plistXmlToJson(xmlStr) {
+			const buf = execSync('plutil -convert json -o - -', { input: xmlStr })
+			return JSON.parse(buf.toString())
+		}
 
-function copyDirectory(device, srcPath, destDir) {
-  return new Promise((resolve, reject) => {
-    const debugfsPath = getBrewBinPath('debugfs');
-    if (!debugfsPath) {
-      return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'));
-    }
-    const dumpCmd = `rdump ${srcPath} ${destDir}`;
-    
-    const args = ['-R', dumpCmd, `/dev/${device}`];
-    execFile(debugfsPath, args, (err) => {
-      if (err) return reject(new Error(`Failed to copy directory: ${err.message}`));
-      // if run under sudo, restore ownership recursively
-      const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10);
-      const sudoGid = process.env.SUDO_GID && parseInt(process.env.SUDO_GID, 10);
-      if (sudoUid && sudoGid && !isNaN(sudoUid) && !isNaN(sudoGid)) {
-        try {
-          // Ensure the base directory ownership is also changed
-          fs.chownSync(destDir, sudoUid, sudoGid);
-          // Use find to recursively chown - safer than execSync with complex paths
-          execSync(`find ${JSON.stringify(destDir)} -exec chown ${sudoUid}:${sudoGid} {} +`);
-        } catch (chownErr) {
-          console.warn(`Failed to recursively change ownership of ${destDir}: ${chownErr.message}`);
-        }
-      }
-      resolve(destDir);
-    });
-  });
-}
+		function listLinuxDisks() {
+			const xml = execSync('diskutil list -plist').toString()
+			const data = plistXmlToJson(xml)
+			if (!data.AllDisksAndPartitions) return []
+			return data.AllDisksAndPartitions.flatMap(d => {
+				// Make sure this disk has partitions
+				if (!d.Partitions) return []
 
-const { createApp } = Vue;
-createApp({
-  data(){return{
-    disks:[],
-    currentDev:null,
-    currentPath:'/',
-    rows:[],
-    lastDestDir:path.join(os.homedir(),'Downloads'),
-    loading: true,
-    status: 'Looking for Linux partitions...',
-    error: null,
-    debugfsPath: null,
-    e2cpPath: null,
-    scanInterval: null,
-    sortKey: 'name',
-    sortAsc: true
-  }},
-  computed:{
-    crumbSegments(){
-      if (!this.currentDev) return [];
-      const parts = this.currentPath.split('/').filter(Boolean);
-      const segments = [];
-      // first segment shows the disk identifier
-      segments.push({ name: this.currentDev, path: '/' });
-      let accum = '/';
-      parts.forEach(part => {
-        accum = path.posix.join(accum, part); // Use path.posix.join for reliability
-        segments.push({ name: part, path: accum });
-      });
-      return segments;
-    },
-    sortedRows() {
-      const sorted = [...this.rows];
-      sorted.sort((a, b) => {
-        // Always sort directories first
-        if (a.isDir !== b.isDir) {
-          return a.isDir ? -1 : 1;
-        }
-        let result;
-        if (this.sortKey === 'name') {
-          result = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-        } else {
-          result = a.rawSize - b.rawSize;
-        }
-        return this.sortAsc ? result : -result;
-      });
-      return sorted;
-    },
-  },
-  methods:{
-    findTools() {
-      this.loading = true;
-      this.status = "Locating e2fsprogs binaries...";
-      
-      this.debugfsPath = getBrewBinPath('debugfs');
-      this.e2cpPath = getBrewBinPath('e2cp');
-      
-      if (!this.debugfsPath) {
-        this.error = `Cannot find 'debugfs'. Please install e2fsprogs with: brew install e2fsprogs`;
-        this.loading = false;
-        return false;
-      }
-      
-      this.status = `Found debugfs at ${this.debugfsPath}`;
-      this.status += "\nReady (running as root)";
-      
-      return true;
-    },
-    refreshDisks(showLoading = true) {
-      if (showLoading) {
-        this.loading = true;
-      }
-      this.error = null;
-      
-      if (showLoading) {
-        this.status = "Looking for Linux partitions...";
-      }
-      
-      if (!this.findTools()) {
-        return;
-      }
-      
-      try {
-        this.disks = listLinuxDisks();
-        
-        if (this.disks.length === 0) {
-          // If no disks found, start auto-rescanning
-          this.startAutoRescan();
-          // We're still loading (scanning) in this case
-          this.loading = true;
-        } else {
-          // If disks found, stop auto-rescanning and hide loading indicator
-          this.stopAutoRescan();
-          this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`;
-          this.loading = false;
-        }
-      } catch(e) {
-        this.error = `Error detecting Linux partitions: ${e.message}`;
-        console.error(e);
-        this.loading = false;
-        this.stopAutoRescan(); // Stop scanning on error
-      }
-    },
-    openDisk(d){
-      this.currentDev = d.id;
-      this.openDir('/');
-    },
-    async openDir(dir){
-      this.rows = [];
-      this.loading = true;
-      this.error = null;
-      // compute new absolute path for the directory
-      const oldPath = this.currentPath || '/';
-      const newPath = dir.startsWith('/')
-        ? dir
-        : (oldPath === '/' ? `/${dir}` : `${oldPath}/${dir}`);
-      this.currentPath = newPath;
-      this.status = `Reading directory ${newPath}...`;
-      
-      try {
-        this.rows = await listDir(this.currentDev, newPath);
-        this.status = `Browsing ${this.currentDev}${newPath} - ${this.rows.length} entries`;
-      } catch(e) {
-        this.error = `Failed to list directory: ${e.message}`;
-        console.error(e);
-      } finally {
-        this.loading = false;
-      }
-    },
-    upOne(){
-      if(this.currentPath==='/'||!this.currentPath) return;
-      const parent=path.posix.dirname(this.currentPath);
-      this.openDir(parent);
-    },
-    async saveFile(row){
-      const originalText = row.saved ? '✔ Saved' : 'Save';
-      row.saveStatus = 'Copying...';
-      row.error = null; // Clear previous error for this item
-      
-      try {
-        const fullSrcPath = path.posix.join(this.currentPath, row.name);
-        const destPath = await copyFile(this.currentDev, fullSrcPath, this.lastDestDir);
-        row.saved = true;
-        row.saveStatus = '✔ Saved';
-        this.status = `File saved to ${destPath}`;
-      } catch (e) {
-        row.saveStatus = '❌ Failed';
-        row.error = `Copy failed: ${e.message}`; // Store error on the row? Or use global error?
-        this.error = `Copy failed for ${row.name}: ${e.message}`; // Show globally too
-        console.error(e);
-        
-        // Reset status after 5 seconds
-        setTimeout(() => {
-          if (row.saveStatus === '❌ Failed') { // Only reset if still failed
-            row.saveStatus = originalText;
-          }
-        }, 5000);
-      }
-    },
-    // save an entire directory recursively
-    async saveDirectory(row){
-      const originalText = row.saved ? '✔ Saved' : 'Save';
-      row.saveStatus = 'Copying...';
-      row.error = null;
-      
-      try {
-        const fullSrcPath = path.posix.join(this.currentPath, row.name);
-        const destPath = await copyDirectory(this.currentDev, fullSrcPath, this.lastDestDir);
-        row.saved = true; // Should we mark directory as saved? Maybe less useful.
-        row.saveStatus = '✔ Saved';
-        this.status = `Directory saved to ${destPath}`; // Use actual returned path
-      } catch (e) {
-        row.saveStatus = '❌ Failed';
-        row.error = `Copy failed: ${e.message}`;
-        this.error = `Copy failed for directory ${row.name}: ${e.message}`;
-        console.error(e);
-        setTimeout(() => {
-          if (row.saveStatus === '❌ Failed') {
-            row.saveStatus = originalText;
-          }
-        }, 5000);
-      }
-    },
-    startAutoRescan() {
-      this.stopAutoRescan(); // Ensure no duplicate intervals
-      
-      this.status = "Scanning for Linux partitions (plug in drive if needed)...";
-      this.loading = true;
-      
-      // Initial scan immediately
-      this.scanDisksInBackground();
-      
-      // Start scanning every 2 seconds (1s might be too frequent)
-      this.scanInterval = setInterval(this.scanDisksInBackground, 2000);
-    },
-    scanDisksInBackground() {
-      // Don't show loading indicator during background scans unless it's already loading
-      // Don't show status updates unless disks are found or an error occurs initially
-      
-      try {
-        const currentDisks = listLinuxDisks();
-        // Check if the list of disks actually changed (simple length check for now)
-        // A more robust check would compare disk IDs if needed
-        if (currentDisks.length > 0 && this.disks.length === 0) {
-          this.disks = currentDisks;
-          this.stopAutoRescan();
-          this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`;
-          this.loading = false; // Hide loading indicator now
-        } else if (currentDisks.length === 0 && this.disks.length > 0) {
-          // Disks were removed, reset state
-          this.disks = [];
-          this.currentDev = null;
-          this.currentPath = '/';
-          this.rows = [];
-          this.error = null;
-          // Restart scanning
-          this.startAutoRescan();
-        }
-        // If list is unchanged (and >0), or still 0, do nothing visually
-      } catch (e) {
-        // Only show error if it's the *first* scan attempt or if loading is active
-        if (this.loading) {
-          this.error = `Error during disk scan: ${e.message}`;
-          console.error("Error during auto-scan:", e);
-          this.loading = false; // Stop showing loading on error
-        } else {
-          // Log subsequent errors quietly
-          console.warn("Non-critical error during background disk scan:", e.message);
-        }
-        // Consider stopping scan on persistent errors?
-        // this.stopAutoRescan()
-      }
-    },
-    stopAutoRescan() {
-      if (this.scanInterval) {
-        clearInterval(this.scanInterval);
-        this.scanInterval = null;
-      }
-    },
-    sortBy(key) {
-      if (this.sortKey === key) {
-        this.sortAsc = !this.sortAsc;
-      } else {
-        this.sortKey = key;
-        this.sortAsc = true; // Default to ascending when changing column
-      }
-    },
-  },
-  mounted() {
-    // Initial setup: Find tools and start scanning
-    this.status = "Initializing...";
-    this.loading = true;
-    if (this.findTools()) {
-      this.startAutoRescan();
-    }
-    // If findTools failed, it will have set loading=false and an error message.
-  },
-  beforeUnmount() {
-    this.stopAutoRescan(); // Clean up interval on component destruction
-  }
-}).mount('#app');
-</script>
+				// Filter and map partitions with Linux content
+				return d.Partitions
+					.filter(p => /Linux/i.test(p.Content || ''))
+					.map(p => ({
+						id: p.DeviceIdentifier,
+						name: p.VolumeName || p.DeviceIdentifier,
+						size: p.Size ? formatSize(p.Size) : 'Unknown',
+						sizeBytes: p.Size || 0
+					}))
+			})
+		}
+
+		// Helper function to format bytes to readable size
+		function formatSize(bytes) {
+			if (bytes === 0) return '0 B'
+			const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+			const i = Math.floor(Math.log(bytes) / Math.log(1024))
+			return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i]
+		}
+
+		function listDir(device, dirPath) {
+			return new Promise((resolve, reject) => {
+				const debugfsPath = getBrewBinPath('debugfs')
+				if (!debugfsPath) {
+					return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'))
+				}
+
+				const args = ['-R', `ls -p ${dirPath}`, `/dev/${device}`]
+				execFile(debugfsPath, args, (err, stdout) => {
+					if (err) return reject(err)
+					console.log("Raw debugfs output:", stdout) // Debugging
+
+					// Expected format from debugfs ls -p for each line:
+					// /INODE/MODE/UID/GID/FILENAME[/]/SIZE/
+					// E.g.: /11/040700/0/0/lost+found//
+					// E.g.: /12/100644/0/0/label/16/
+					const rows = []
+
+					// Skip the header lines (debugfs version info)
+					const outputLines = stdout.split('\n').filter(line =>
+						line.trim() !== '' &&
+						!line.startsWith('debugfs') &&
+						!line.includes('1-Jan-2025')
+					)
+
+					outputLines.forEach(line => {
+						// Parse the line according to debugfs ls -p format
+						const match = line.match(/^\s*\/(\d+)\/(\d+)\/(\d+)\/(\d+)\/(.+?)(\/\/|\/(\d+)\/)$/)
+						if (match) {
+							const inode = match[1]
+							const mode = match[2]
+							const uid = match[3]
+							const gid = match[4]
+							let name = match[5].trim() // Trim whitespace around name
+
+							// Handle potential extra slashes if name itself contained slashes
+							// debugfs might escape them, or handle them differently. This is a basic guess.
+							name = name.replace(/\\\//g, '/') // Simple attempt to unescape
+
+							if (name === '.' || name === '..') {
+								return // skip . and .. entries
+							}
+							const isDir = match[6] === '//'
+							const rawSize = isDir ? 0 : parseInt(match[7] || '0', 10)
+							const size = isDir ? '' : formatSize(rawSize)
+
+							rows.push({
+								name,
+								isDir,
+								size,
+								inode,
+								mode,
+								uid,
+								gid,
+								rawSize
+							})
+						} else {
+							console.warn("Failed to parse debugfs line:", line)
+						}
+					})
+
+					resolve(rows)
+				})
+			})
+		}
+
+		function copyFile(device, srcPath, destDir) {
+			return new Promise((resolve, reject) => {
+				const dest = path.join(destDir, path.basename(srcPath))
+
+				// Use debugfs's 'dump' command to get the file content
+				const debugfsPath = getBrewBinPath('debugfs')
+				if (!debugfsPath) {
+					return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'))
+				}
+
+				const dumpCmd = `dump -p ${srcPath} ${dest}`
+				const args = ['-R', dumpCmd, `/dev/${device}`]
+				execFile(debugfsPath, args, (err) => {
+					if (err) return reject(new Error(`Failed to copy file: ${err.message}`))
+					// if run under sudo, restore file ownership to original user
+					const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10)
+					const sudoGid = process.env.SUDO_GID && parseInt(process.env.SUDO_GID, 10)
+					if (sudoUid && sudoGid && !isNaN(sudoUid) && !isNaN(sudoGid)) {
+						try {
+							fs.chownSync(dest, sudoUid, sudoGid)
+						} catch (chownErr) {
+							console.warn(`Failed to change ownership of ${dest}: ${chownErr.message}`)
+						}
+					}
+					resolve(dest)
+				})
+			})
+		}
+
+		function copyDirectory(device, srcPath, destDir) {
+			return new Promise((resolve, reject) => {
+				const debugfsPath = getBrewBinPath('debugfs')
+				if (!debugfsPath) {
+					return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'))
+				}
+				const dumpCmd = `rdump ${srcPath} ${destDir}`
+
+				const args = ['-R', dumpCmd, `/dev/${device}`]
+				execFile(debugfsPath, args, (err) => {
+					if (err) return reject(new Error(`Failed to copy directory: ${err.message}`))
+					// if run under sudo, restore ownership recursively
+					const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10)
+					const sudoGid = process.env.SUDO_GID && parseInt(process.env.SUDO_GID, 10)
+					if (sudoUid && sudoGid && !isNaN(sudoUid) && !isNaN(sudoGid)) {
+						try {
+							// Ensure the base directory ownership is also changed
+							fs.chownSync(destDir, sudoUid, sudoGid)
+							// Use find to recursively chown - safer than execSync with complex paths
+							execSync(`find ${JSON.stringify(destDir)} -exec chown ${sudoUid}:${sudoGid} {} +`)
+						} catch (chownErr) {
+							console.warn(`Failed to recursively change ownership of ${destDir}: ${chownErr.message}`)
+						}
+					}
+					resolve(destDir)
+				})
+			})
+		}
+
+		const { createApp } = Vue
+		createApp({
+			data() {
+				return {
+					disks: [],
+					currentDev: null,
+					currentPath: '/',
+					rows: [],
+					lastDestDir: path.join(os.homedir(), 'Downloads'),
+					loading: true,
+					status: 'Looking for Linux partitions...',
+					error: null,
+					debugfsPath: null,
+					e2cpPath: null,
+					scanInterval: null,
+					sortKey: 'name',
+					sortAsc: true
+				}
+			},
+			computed: {
+				crumbSegments() {
+					if (!this.currentDev) return []
+					const parts = this.currentPath.split('/').filter(Boolean)
+					const segments = []
+					// first segment shows the disk identifier
+					segments.push({ name: this.currentDev, path: '/' })
+					let accum = '/'
+					parts.forEach(part => {
+						accum = path.posix.join(accum, part) // Use path.posix.join for reliability
+						segments.push({ name: part, path: accum })
+					})
+					return segments
+				},
+				sortedRows() {
+					const sorted = [...this.rows]
+					sorted.sort((a, b) => {
+						// Always sort directories first
+						if (a.isDir !== b.isDir) {
+							return a.isDir ? -1 : 1
+						}
+						let result
+						if (this.sortKey === 'name') {
+							result = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+						} else {
+							result = a.rawSize - b.rawSize
+						}
+						return this.sortAsc ? result : -result
+					})
+					return sorted
+				},
+			},
+			methods: {
+				findTools() {
+					this.loading = true
+					this.status = "Locating e2fsprogs binaries..."
+
+					this.debugfsPath = getBrewBinPath('debugfs')
+					this.e2cpPath = getBrewBinPath('e2cp')
+
+					if (!this.debugfsPath) {
+						this.error = `Cannot find 'debugfs'. Please install e2fsprogs with: brew install e2fsprogs`
+						this.loading = false
+						return false
+					}
+
+					this.status = `Found debugfs at ${this.debugfsPath}`
+					this.status += "\nReady (running as root)"
+
+					return true
+				},
+				refreshDisks(showLoading = true) {
+					if (showLoading) {
+						this.loading = true
+					}
+					this.error = null
+
+					if (showLoading) {
+						this.status = "Looking for Linux partitions..."
+					}
+
+					if (!this.findTools()) {
+						return
+					}
+
+					try {
+						this.disks = listLinuxDisks()
+
+						if (this.disks.length === 0) {
+							// If no disks found, start auto-rescanning
+							this.startAutoRescan()
+							// We're still loading (scanning) in this case
+							this.loading = true
+						} else {
+							// If disks found, stop auto-rescanning and hide loading indicator
+							this.stopAutoRescan()
+							this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`
+							this.loading = false
+						}
+					} catch (e) {
+						this.error = `Error detecting Linux partitions: ${e.message}`
+						console.error(e)
+						this.loading = false
+						this.stopAutoRescan() // Stop scanning on error
+					}
+				},
+				openDisk(d) {
+					this.currentDev = d.id
+					this.openDir('/')
+				},
+				async openDir(dir) {
+					this.rows = []
+					this.loading = true
+					this.error = null
+					// compute new absolute path for the directory
+					const oldPath = this.currentPath || '/'
+					const newPath = dir.startsWith('/')
+						? dir
+						: (oldPath === '/' ? `/${dir}` : `${oldPath}/${dir}`)
+					this.currentPath = newPath
+					this.status = `Reading directory ${newPath}...`
+
+					try {
+						this.rows = await listDir(this.currentDev, newPath)
+						this.status = `Browsing ${this.currentDev}${newPath} - ${this.rows.length} entries`
+					} catch (e) {
+						this.error = `Failed to list directory: ${e.message}`
+						console.error(e)
+					} finally {
+						this.loading = false
+					}
+				},
+				upOne() {
+					if (this.currentPath === '/' || !this.currentPath) return
+					const parent = path.posix.dirname(this.currentPath)
+					this.openDir(parent)
+				},
+				async saveFile(row) {
+					const originalText = row.saved ? '✔ Saved' : 'Save'
+					row.saveStatus = 'Copying...'
+					row.error = null // Clear previous error for this item
+
+					try {
+						const fullSrcPath = path.posix.join(this.currentPath, row.name)
+						const destPath = await copyFile(this.currentDev, fullSrcPath, this.lastDestDir)
+						row.saved = true
+						row.saveStatus = '✔ Saved'
+						this.status = `File saved to ${destPath}`
+					} catch (e) {
+						row.saveStatus = '❌ Failed'
+						row.error = `Copy failed: ${e.message}` // Store error on the row? Or use global error?
+						this.error = `Copy failed for ${row.name}: ${e.message}` // Show globally too
+						console.error(e)
+
+						// Reset status after 5 seconds
+						setTimeout(() => {
+							if (row.saveStatus === '❌ Failed') { // Only reset if still failed
+								row.saveStatus = originalText
+							}
+						}, 5000)
+					}
+				},
+				// save an entire directory recursively
+				async saveDirectory(row) {
+					const originalText = row.saved ? '✔ Saved' : 'Save'
+					row.saveStatus = 'Copying...'
+					row.error = null
+
+					try {
+						const fullSrcPath = path.posix.join(this.currentPath, row.name)
+						const destPath = await copyDirectory(this.currentDev, fullSrcPath, this.lastDestDir)
+						row.saved = true // Should we mark directory as saved? Maybe less useful.
+						row.saveStatus = '✔ Saved'
+						this.status = `Directory saved to ${destPath}` // Use actual returned path
+					} catch (e) {
+						row.saveStatus = '❌ Failed'
+						row.error = `Copy failed: ${e.message}`
+						this.error = `Copy failed for directory ${row.name}: ${e.message}`
+						console.error(e)
+						setTimeout(() => {
+							if (row.saveStatus === '❌ Failed') {
+								row.saveStatus = originalText
+							}
+						}, 5000)
+					}
+				},
+				startAutoRescan() {
+					this.stopAutoRescan() // Ensure no duplicate intervals
+
+					this.status = "Scanning for Linux partitions (plug in drive if needed)..."
+					this.loading = true
+
+					// Initial scan immediately
+					this.scanDisksInBackground()
+
+					// Start scanning every 2 seconds (1s might be too frequent)
+					this.scanInterval = setInterval(this.scanDisksInBackground, 2000)
+				},
+				scanDisksInBackground() {
+					// Don't show loading indicator during background scans unless it's already loading
+					// Don't show status updates unless disks are found or an error occurs initially
+
+					try {
+						const currentDisks = listLinuxDisks()
+						// Check if the list of disks actually changed (simple length check for now)
+						// A more robust check would compare disk IDs if needed
+						if (currentDisks.length > 0 && this.disks.length === 0) {
+							this.disks = currentDisks
+							this.stopAutoRescan()
+							this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`
+							this.loading = false // Hide loading indicator now
+						} else if (currentDisks.length === 0 && this.disks.length > 0) {
+							// Disks were removed, reset state
+							this.disks = []
+							this.currentDev = null
+							this.currentPath = '/'
+							this.rows = []
+							this.error = null
+							// Restart scanning
+							this.startAutoRescan()
+						}
+						// If list is unchanged (and >0), or still 0, do nothing visually
+					} catch (e) {
+						// Only show error if it's the *first* scan attempt or if loading is active
+						if (this.loading) {
+							this.error = `Error during disk scan: ${e.message}`
+							console.error("Error during auto-scan:", e)
+							this.loading = false // Stop showing loading on error
+						} else {
+							// Log subsequent errors quietly
+							console.warn("Non-critical error during background disk scan:", e.message)
+						}
+						// Consider stopping scan on persistent errors?
+						// this.stopAutoRescan()
+					}
+				},
+				stopAutoRescan() {
+					if (this.scanInterval) {
+						clearInterval(this.scanInterval)
+						this.scanInterval = null
+					}
+				},
+				sortBy(key) {
+					if (this.sortKey === key) {
+						this.sortAsc = !this.sortAsc
+					} else {
+						this.sortKey = key
+						this.sortAsc = true // Default to ascending when changing column
+					}
+				},
+			},
+			mounted() {
+				// Initial setup: Find tools and start scanning
+				this.status = "Initializing..."
+				this.loading = true
+				if (this.findTools()) {
+					this.startAutoRescan()
+				}
+				// If findTools failed, it will have set loading=false and an error message.
+			},
+			beforeUnmount() {
+				this.stopAutoRescan() // Clean up interval on component destruction
+			}
+		}).mount('#app');
+	</script>
 </body>
-</html> 
+
+</html>

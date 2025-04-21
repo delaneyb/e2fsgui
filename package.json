@@ -5,7 +5,7 @@
   "main": "main.js",
   "productName": "e2fsgui",
   "scripts": {
-    "start": "electron .",
+    "start": "sudo electron .",
     "build:zip": "node build-zip.js",
     "release": "standard-version && git push --follow-tags && sleep 3 && gh run watch $(gh run list --workflow='Build & Release macOS' --limit 1 --json databaseId --jq '.[0].databaseId')"
   },
