@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.17](https://github.com/delaneyb/e2fsgui/compare/v1.0.15...v1.0.17) (2025-04-21)
+
+
+### Bug Fixes
+
+* improve build script error messages and update quarantine removal process ([6653bad](https://github.com/delaneyb/e2fsgui/commit/6653bad365c99036d04c7f90fed7559a937b11bb))
+* xattr -d quarantine flag preventing launch ([843fcd2](https://github.com/delaneyb/e2fsgui/commit/843fcd20496625fc295c744309fdb43cea2a74fa))
+
 ### [1.0.16](https://github.com/delaneyb/e2fsgui/compare/v1.0.15...v1.0.16) (2025-04-21)
 
 
