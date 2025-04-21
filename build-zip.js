@@ -10,33 +10,32 @@ const stagingDir = path.join(releaseDir, `e2fsgui-v${version}`)
 
 const LAUNCHER_SCRIPT = `#!/bin/sh
 
-# Prepend Homebrew e2fsprogs if available
+# Add Homebrew e2fsprogs to PATH if available
 if command -v brew >/dev/null 2>&1; then
-  PREFIX=$(brew --prefix)
+  PREFIX="$(brew --prefix)"
   export PATH="$PREFIX/opt/e2fsprogs/bin:$PREFIX/opt/e2fsprogs/sbin:$PATH"
 fi
 
-# Verify debugfs
+# Require debugfs
 if ! command -v debugfs >/dev/null 2>&1; then
   echo "Error: e2fsprogs (debugfs) not found. Install with: brew install e2fsprogs" >&2
   exit 1
 fi
 
-# Resolve directories
 DIR="$(cd "$(dirname "$0")" && pwd)"
 ELECTRON_DIST="$DIR/electron-dist/Electron.app"
 ELECTRON_BIN="$ELECTRON_DIST/Contents/MacOS/Electron"
-if [ ! -x "$ELECTRON_BIN" ]; then
-  echo "Error: Electron binary not found at $ELECTRON_BIN" >&2
-  exit 1
-fi
 APP_DIR="$DIR/app"
 
-# Remove quarantine attribute which causes "app is damaged"
-xattr -d com.apple.quarantine "$ELECTRON_DIST" "$APP_DIR"
+if [ ! -x "$ELECTRON_BIN" ]; then
+  echo "Error: Electron binary not found: $ELECTRON_BIN" >&2
+  exit 1
+fi
 
-# Launch with sudo for raw disk access
-echo "Launching e2fsgui…"
+# Remove quarantine attribute from Electron.app
+xattr -d -f com.apple.quarantine "$ELECTRON_DIST"
+
+echo "Launching e2fsgui..."
 exec sudo "$ELECTRON_BIN" "$APP_DIR" "$@"
 `
 
