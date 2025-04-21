@@ -5,6 +5,7 @@
 	<meta charset="utf-8">
 	<title>e2fsgui</title>
 	<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 	<style>
 		body {
 			margin: 0;
@@ -89,16 +90,45 @@
 			background: #f9f9f9;
 		}
 
+		/* Modern button style */
 		button {
-			padding: 4px 10px;
-			border: 1px solid #888;
+			padding: 6px 12px;
+			border: none;
 			border-radius: 4px;
-			background: #fff;
+			background-color: #f2f2f2;
+			color: #333;
 			cursor: pointer;
+			transition: background-color 0.2s;
+		}
+		button:hover:not(:disabled) {
+			background-color: #e0e0e0;
+		}
+		button:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
 		}
 
-		button:hover {
-			background: #e6e6e6;
+		/* Actions row buttons */
+		.actions-row button {
+			margin: 0;
+		}
+
+		/* Icon-only action buttons - square, centered */
+		.action-icon-only {
+			width: 36px;
+			height: 36px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border: none;
+			border-radius: 4px;
+			background-color: #f2f2f2;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			padding: 0;
+		}
+		.action-icon-only:hover:not(:disabled) {
+			background-color: #e0e0e0;
 		}
 
 		.status-bar {
@@ -201,6 +231,43 @@
 		td:nth-child(3) {
 			min-width: 80px;
 		}
+
+		th:nth-child(4),
+		td:nth-child(4) {
+			min-width: 70px;
+		}
+
+		th:nth-child(5),
+		td:nth-child(5) {
+			min-width: 50px;
+			text-align: right;
+		}
+
+		th:nth-child(6),
+		td:nth-child(6) {
+			min-width: 50px;
+			text-align: right;
+		}
+
+		th:nth-child(7),
+		td:nth-child(7) {
+			min-width: 230px;
+			text-align: left;
+		}
+
+		button:first-child {
+			margin-left: 0;
+		}
+
+		.actions-row {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+		}
+
+		.action-icon-only[style*="color:red"] {
+			color: #d32f2f;
+		}
 	</style>
 </head>
 
@@ -221,6 +288,8 @@
 								<a v-else href="#" @click.prevent="openDir(seg.path)">{{ seg.name }}</a>
 							</span>
 						</span>
+						<!-- Add New Folder Button -->
+						<button @click="createNewDirectory" style="margin-left: 15px;" title="Create New Folder">+</button>
 					</template>
 					<template v-else>Select a Linux disk…</template>
 				</div>
@@ -235,27 +304,51 @@
 							<th @click="sortBy('size')" style="cursor:pointer">
 								Size <span v-if="sortKey==='size'">{{ sortAsc ? '▲' : '▼' }}</span>
 							</th>
-							<th></th>
+							<th @click="sortBy('mode')" style="cursor:pointer">
+								Mode <span v-if="sortKey==='mode'">{{ sortAsc ? '▲' : '▼' }}</span>
+							</th>
+							<th @click="sortBy('uid')" style="cursor:pointer">
+								UID <span v-if="sortKey==='uid'">{{ sortAsc ? '▲' : '▼' }}</span>
+							</th>
+							<th @click="sortBy('gid')" style="cursor:pointer">
+								GID <span v-if="sortKey==='gid'">{{ sortAsc ? '▲' : '▼' }}</span>
+							</th>
+							<th style="text-align:left;">Actions</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr v-if="currentPath!=='/'" @click="upOne" style="cursor:pointer">
-							<td>⬆️</td>
+							<td><i class="fas fa-arrow-up"></i></td>
 							<td colspan="3">..</td>
+							<td colspan="3"></td>
 						</tr>
 						<tr v-for="r in sortedRows" :key="r.name" @click="r.isDir ? openDir(r.name) : null" :style="r.isDir ? 'cursor:pointer' : ''">
-							<td>{{ r.isDir ? '📁' : '📄' }}</td>
+							<td>
+								<i v-if="r.fileType === 'directory'" class="fa-solid fa-folder"></i>
+								<i v-else-if="r.fileType === 'symlink'" class="fa-solid fa-link"></i>
+								<i v-else-if="r.fileType === 'block'" class="fa-solid fa-hard-drive"></i>
+								<i v-else-if="r.fileType === 'character'" class="fa-solid fa-terminal"></i>
+								<i v-else-if="r.fileType === 'fifo'" class="fa-solid fa-pipe"></i>
+								<i v-else-if="r.fileType === 'socket'" class="fa-solid fa-plug"></i>
+								<i v-else class="fa-solid fa-file"></i>
+							</td>
 							<td>{{ r.name }}</td>
 							<td>{{ r.isDir ? '' : r.size }}</td>
+							<td>{{ r.mode }}</td>
+							<td style="text-align: right;">{{ r.uid }}</td>
+							<td style="text-align: right;">{{ r.gid }}</td>
 							<td>
-								<!-- directory save button -->
-								<button v-if="r.isDir" @click.stop="saveDirectory(r)">{{ r.saveStatus || (r.saved ? '✔ Saved' : 'Save') }}</button>
-								<!-- file save button -->
-								<button v-else @click.stop="saveFile(r)">{{ r.saveStatus || (r.saved ? '✔ Saved' : 'Save') }}</button>
+								<div class="actions-row">
+									<button v-if="!r.isDir && r.fileType === 'regular'" @click.stop="viewFile(r)" title="View File Content"><i class="fa-solid fa-eye"></i> View</button>
+									<button v-if="r.fileType === 'directory'" @click.stop="saveDirectory(r)" :disabled="!!r.saveStatus && r.saveStatus !== '✔ Saved'"><i class="fa-solid fa-save"></i> {{ r.saveStatus || (r.saved ? 'Saved' : 'Save') }}</button>
+									<button v-else @click.stop="saveFile(r)" :disabled="!!r.saveStatus && r.saveStatus !== '✔ Saved'"><i class="fa-solid fa-save"></i> {{ r.saveStatus || (r.saved ? 'Saved' : 'Save') }}</button>
+									<button @click.stop="showInfo(r)" title="Show Info" class="action-icon-only"><i class="fa-solid fa-circle-info"></i></button>
+									<button @click.stop="deleteSelectedItem(r)" title="Delete Item" class="action-icon-only" style="color:red;"><i class="fa-solid fa-trash"></i></button>
+								</div>
 							</td>
 						</tr>
 						<tr v-if="rows.length === 0 && !loading && !error">
-							<td colspan="4" style="text-align:center;padding:20px;color:#666">
+							<td colspan="7" style="text-align:center;padding:20px;color:#666">
 								This directory is empty
 							</td>
 						</tr>
@@ -270,6 +363,24 @@
 			<div class="loader"></div>
 			<div>{{ status }}</div>
 		</div>
+
+		<!-- Info Modal -->
+		<div v-if="showInfoModal" class="loading-overlay" @click.self="closeInfoModal" style="background: rgba(0,0,0,0.5); z-index: 20;">
+			<div style="background: white; padding: 20px; border-radius: 5px; max-width: 80%; max-height: 80%; display: flex; flex-direction: column; overflow: hidden;">
+				<h3>Info: {{ currentItemName }}</h3>
+				<pre style="flex: 1; overflow: auto; white-space: pre-wrap; word-wrap: break-word; background: #f8f8f8; border: 1px solid #eee; padding: 10px; margin: 10px 0; min-height: 0;">{{ infoContent }}</pre>
+				<button @click="closeInfoModal" style="align-self: flex-end; margin-top: 10px;">Close</button>
+			</div>
+		</div>
+
+		<!-- View File Modal -->
+		<div v-if="showViewModal" class="loading-overlay" @click.self="closeViewModal" style="background: rgba(0,0,0,0.5); z-index: 20;">
+			<div style="background: white; padding: 20px; border-radius: 5px; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; overflow: hidden;">
+				<h3>View: {{ currentItemName }}</h3>
+				<pre style="flex: 1; overflow: auto; white-space: pre-wrap; word-wrap: break-word; background: #f8f8f8; border: 1px solid #eee; padding: 10px; min-height: 0;">{{ viewContent }}</pre>
+				<button @click="closeViewModal" style="align-self: flex-end; margin-top: 10px;">Close</button>
+			</div>
+		</div>
 	</div>
 
 	<script>
@@ -277,6 +388,7 @@
 		const path = require('path')
 		const os = require('os')
 		const fs = require('fs')
+		const debugUtils = require('./debugfs-utils')
 
 		// Find Homebrew installation path and e2fsprogs binaries
 		function findHomebrewPath() {
@@ -354,127 +466,121 @@
 		}
 
 		function listDir(device, dirPath) {
-			return new Promise((resolve, reject) => {
-				const debugfsPath = getBrewBinPath('debugfs')
-				if (!debugfsPath) {
-					return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'))
-				}
-
-				const args = ['-R', `ls -p ${dirPath}`, `/dev/${device}`]
-				execFile(debugfsPath, args, (err, stdout) => {
-					if (err) return reject(err)
-					console.log("Raw debugfs output:", stdout) // Debugging
-
-					// Expected format from debugfs ls -p for each line:
-					// /INODE/MODE/UID/GID/FILENAME[/]/SIZE/
-					// E.g.: /11/040700/0/0/lost+found//
-					// E.g.: /12/100644/0/0/label/16/
+			return debugUtils.runDebugFs(device, `ls -p ${dirPath}`)
+				.then(({ stdout }) => {
 					const rows = []
-
-					// Skip the header lines (debugfs version info)
 					const outputLines = stdout.split('\n').filter(line =>
 						line.trim() !== '' &&
 						!line.startsWith('debugfs') &&
 						!line.includes('1-Jan-2025')
 					)
-
 					outputLines.forEach(line => {
-						// Parse the line according to debugfs ls -p format
 						const match = line.match(/^\s*\/(\d+)\/(\d+)\/(\d+)\/(\d+)\/(.+?)(\/\/|\/(\d+)\/)$/)
 						if (match) {
-							const inode = match[1]
-							const mode = match[2]
-							const uid = match[3]
-							const gid = match[4]
-							let name = match[5].trim() // Trim whitespace around name
-
-							// Handle potential extra slashes if name itself contained slashes
-							// debugfs might escape them, or handle them differently. This is a basic guess.
-							name = name.replace(/\\\//g, '/') // Simple attempt to unescape
-
-							if (name === '.' || name === '..') {
-								return // skip . and .. entries
-							}
-							const isDir = match[6] === '//'
-							const rawSize = isDir ? 0 : parseInt(match[7] || '0', 10)
+							const [ , inode, mode, uid, gid, rawName, slashType, sizeStr ] = match
+							let name = rawName.trim().replace(/\\\//g, '/')
+							if (name === '.' || name === '..') return
+							const isDir = slashType === '//'
+							const rawSize = isDir ? 0 : parseInt(sizeStr || '0', 10)
 							const size = isDir ? '' : formatSize(rawSize)
-
-							rows.push({
-								name,
-								isDir,
-								size,
-								inode,
-								mode,
-								uid,
-								gid,
-								rawSize
-							})
+							const modeNum = parseInt(mode, 8)
+							const fileType = getFileType(modeNum)
+							rows.push({ name, isDir, size, inode, mode, uid, gid, rawSize, fileType })
 						} else {
-							console.warn("Failed to parse debugfs line:", line)
+							console.warn('Failed to parse debugfs line:', line)
 						}
 					})
-
-					resolve(rows)
+					return rows
 				})
-			})
+		}
+
+		// Helper function to determine file type from mode bits
+		function getFileType(modeNum) {
+			// File type constants (octal)
+			const S_IFMT = 0o170000;  // bit mask for the file type bit field
+			const S_IFSOCK = 0o140000; // socket
+			const S_IFLNK = 0o120000;  // symbolic link
+			const S_IFREG = 0o100000;  // regular file
+			const S_IFBLK = 0o060000;  // block device
+			const S_IFDIR = 0o040000;  // directory
+			const S_IFCHR = 0o020000;  // character device
+			const S_IFIFO = 0o010000;  // FIFO/pipe
+
+			const type = modeNum & S_IFMT;
+
+			if (type === S_IFDIR) return 'directory';
+			if (type === S_IFREG) return 'regular';
+			if (type === S_IFLNK) return 'symlink';
+			if (type === S_IFBLK) return 'block';
+			if (type === S_IFCHR) return 'character';
+			if (type === S_IFIFO) return 'fifo';
+			if (type === S_IFSOCK) return 'socket';
+			return 'unknown';
 		}
 
 		function copyFile(device, srcPath, destDir) {
 			return new Promise((resolve, reject) => {
 				const dest = path.join(destDir, path.basename(srcPath))
-
-				// Use debugfs's 'dump' command to get the file content
-				const debugfsPath = getBrewBinPath('debugfs')
-				if (!debugfsPath) {
-					return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'))
-				}
-
-				const dumpCmd = `dump -p ${srcPath} ${dest}`
-				const args = ['-R', dumpCmd, `/dev/${device}`]
-				execFile(debugfsPath, args, (err) => {
-					if (err) return reject(new Error(`Failed to copy file: ${err.message}`))
-					// if run under sudo, restore file ownership to original user
-					const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10)
-					const sudoGid = process.env.SUDO_GID && parseInt(process.env.SUDO_GID, 10)
-					if (sudoUid && sudoGid && !isNaN(sudoUid) && !isNaN(sudoGid)) {
-						try {
-							fs.chownSync(dest, sudoUid, sudoGid)
-						} catch (chownErr) {
-							console.warn(`Failed to change ownership of ${dest}: ${chownErr.message}`)
+				debugUtils.runDebugFs(device, `dump -p ${srcPath} ${dest}`)
+					.then(() => {
+						const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10)
+						const sudoGid = process.env.SUDO_GID && parseInt(process.env.SUDO_GID, 10)
+						if (sudoUid && sudoGid && !isNaN(sudoUid) && !isNaN(sudoGid)) {
+							try { fs.chownSync(dest, sudoUid, sudoGid) } catch (e) { console.warn(`Failed to chown ${dest}: ${e.message}`) }
 						}
-					}
-					resolve(dest)
-				})
+						resolve(dest)
+					})
+					.catch(err => reject(new Error(`Failed to copy file: ${err.message}`)))
 			})
 		}
 
 		function copyDirectory(device, srcPath, destDir) {
-			return new Promise((resolve, reject) => {
-				const debugfsPath = getBrewBinPath('debugfs')
-				if (!debugfsPath) {
-					return reject(new Error('debugfs not found. Please ensure e2fsprogs is installed via Homebrew.'))
-				}
-				const dumpCmd = `rdump ${srcPath} ${destDir}`
-
-				const args = ['-R', dumpCmd, `/dev/${device}`]
-				execFile(debugfsPath, args, (err) => {
-					if (err) return reject(new Error(`Failed to copy directory: ${err.message}`))
-					// if run under sudo, restore ownership recursively
+			return debugUtils.runDebugFs(device, `rdump ${srcPath} ${destDir}`)
+				.then(() => {
 					const sudoUid = process.env.SUDO_UID && parseInt(process.env.SUDO_UID, 10)
 					const sudoGid = process.env.SUDO_GID && parseInt(process.env.SUDO_GID, 10)
 					if (sudoUid && sudoGid && !isNaN(sudoUid) && !isNaN(sudoGid)) {
 						try {
-							// Ensure the base directory ownership is also changed
 							fs.chownSync(destDir, sudoUid, sudoGid)
-							// Use find to recursively chown - safer than execSync with complex paths
 							execSync(`find ${JSON.stringify(destDir)} -exec chown ${sudoUid}:${sudoGid} {} +`)
-						} catch (chownErr) {
-							console.warn(`Failed to recursively change ownership of ${destDir}: ${chownErr.message}`)
+						} catch (e) {
+							console.warn(`Failed to recursively chown ${destDir}: ${e.message}`)
 						}
 					}
-					resolve(destDir)
+					return destDir
 				})
-			})
+				.catch(err => { throw new Error(`Failed to copy directory: ${err.message}`) })
+		}
+
+		function getInodeInfo(device, itemPath) {
+			return debugUtils.runDebugFs(device, `stat ${itemPath}`)
+				.then(({ stdout, stderr }) => (stdout.trim() || stderr.trim()))
+		}
+
+		function readFileContent(device, filePath) {
+			return debugUtils.runDebugFs(device, `cat ${filePath}`, { maxBuffer: 1024 * 1024 * 5 })
+				.then(({ stdout, stderr }) => {
+					if (stderr && stderr.includes('Cannot read block') && stdout) {
+						console.warn(`readFileContent: Partial read or error for ${filePath}: ${stderr}`)
+						return stdout + "\n\n[Warning: Error during read - content might be incomplete or corrupted]"
+					}
+					return stdout
+				})
+		}
+
+		function createDirectory(device, newDirPath) {
+			return debugUtils.runDebugFs(device, `mkdir ${newDirPath}`, { write: true }).then(() => {})
+		}
+
+		function deleteItem(device, itemPath, isDir) {
+			const cmd = isDir ? `rmdir ${itemPath}` : `rm ${itemPath}`
+			return debugUtils.runDebugFs(device, cmd, { write: true })
+				.catch(err => {
+					if (err.message && err.message.includes('Directory not empty')) {
+						throw new Error(`Directory not empty: ${itemPath}`)
+					}
+					throw new Error(`Failed to delete ${isDir ? 'directory' : 'file'}: ${err.message}`)
+				})
 		}
 
 		const { createApp } = Vue
@@ -493,7 +599,13 @@
 					e2cpPath: null,
 					scanInterval: null,
 					sortKey: 'name',
-					sortAsc: true
+					sortAsc: true,
+					// New state for modals
+					showInfoModal: false,
+					infoContent: '',
+					showViewModal: false,
+					viewContent: '',
+					currentItemName: '', // For modal titles
 				}
 			},
 			computed: {
@@ -520,8 +632,17 @@
 						let result
 						if (this.sortKey === 'name') {
 							result = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-						} else {
+						} else if (this.sortKey === 'size') {
 							result = a.rawSize - b.rawSize
+						} else if (this.sortKey === 'mode') {
+							// Simple string comparison for octal mode
+							result = (a.mode || '').localeCompare(b.mode || '')
+						} else if (this.sortKey === 'uid') {
+							result = parseInt(a.uid || '0') - parseInt(b.uid || '0')
+						} else if (this.sortKey === 'gid') {
+							result = parseInt(a.gid || '0') - parseInt(b.gid || '0')
+						} else {
+							result = 0 // Should not happen
 						}
 						return this.sortAsc ? result : -result
 					})
@@ -533,8 +654,8 @@
 					this.loading = true
 					this.status = "Locating e2fsprogs binaries..."
 
-					this.debugfsPath = getBrewBinPath('debugfs')
-					this.e2cpPath = getBrewBinPath('e2cp')
+					this.debugfsPath = debugUtils.getBrewBinPath('debugfs')
+					this.e2cpPath = debugUtils.getBrewBinPath('e2cp')
 
 					if (!this.debugfsPath) {
 						this.error = `Cannot find 'debugfs'. Please install e2fsprogs with: brew install e2fsprogs`
@@ -574,6 +695,10 @@
 							this.stopAutoRescan()
 							this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`
 							this.loading = false
+							// Auto-select first disk if none selected
+							if (!this.currentDev) {
+								this.openDisk(this.disks[0])
+							}
 						}
 					} catch (e) {
 						this.error = `Error detecting Linux partitions: ${e.message}`
@@ -725,6 +850,110 @@
 						this.sortKey = key
 						this.sortAsc = true // Default to ascending when changing column
 					}
+				},
+				// ---- New Methods ----
+				async showInfo(item) {
+					this.loading = true
+					this.status = `Getting info for ${item.name}...`
+					this.error = null
+					this.currentItemName = item.name
+					try {
+						const fullPath = path.posix.join(this.currentPath, item.name)
+						this.infoContent = await getInodeInfo(this.currentDev, fullPath)
+						this.showInfoModal = true
+						this.status = `Showing info for ${item.name}`
+					} catch (e) {
+						this.error = `Failed to get info: ${e.message}`
+						console.error(e)
+						this.status = `Error getting info for ${item.name}`
+					} finally {
+						this.loading = false
+					}
+				},
+				async viewFile(item) {
+					if (item.isDir || item.fileType !== 'regular') return // Only allow viewing regular files
+					this.loading = true
+					this.status = `Reading file ${item.name}...`
+					this.error = null
+					this.currentItemName = item.name
+					try {
+						const fullPath = path.posix.join(this.currentPath, item.name)
+						this.viewContent = await readFileContent(this.currentDev, fullPath)
+						this.showViewModal = true
+						this.status = `Viewing file ${item.name}`
+					} catch (e) {
+						this.error = `Failed to read file: ${e.message}`
+						// Try to show partial content if available in error? Maybe too complex.
+						this.viewContent = `Error reading file:\n\n${e.message}`
+						this.showViewModal = true // Show error in modal
+						console.error(e)
+						this.status = `Error reading file ${item.name}`
+					} finally {
+						this.loading = false
+					}
+				},
+				async createNewDirectory() {
+					const newDirName = prompt("Enter name for new directory:")
+					if (!newDirName || !newDirName.trim()) {
+						return // User cancelled or entered empty name
+					}
+
+					// Basic validation for invalid characters (e.g., '/')
+					if (newDirName.includes('/')) {
+						alert("Directory name cannot contain '/'")
+						return
+					}
+
+					this.loading = true
+					this.status = `Creating directory ${newDirName}...`
+					this.error = null
+					try {
+						const newDirPath = path.posix.join(this.currentPath, newDirName.trim())
+						await createDirectory(this.currentDev, newDirPath)
+						this.status = `Directory ${newDirName} created.`
+						// Refresh current directory view
+						await this.openDir(this.currentPath)
+					} catch (e) {
+						this.error = `Failed to create directory: ${e.message}`
+						console.error(e)
+						this.status = `Error creating directory ${newDirName}`
+						// Don't need finally loading=false here because openDir will handle it
+					}
+					// No finally needed as openDir sets loading state
+				},
+				async deleteSelectedItem(item) {
+					const itemType = item.isDir ? 'directory' : 'file'
+					const confirmMsg = `Are you sure you want to permanently delete the ${itemType} "${item.name}"?`
+					if (!confirm(confirmMsg)) {
+						return // User cancelled
+					}
+
+					this.loading = true
+					this.status = `Deleting ${itemType} ${item.name}...`
+					this.error = null
+					try {
+						const fullPath = path.posix.join(this.currentPath, item.name)
+						await deleteItem(this.currentDev, fullPath, item.isDir)
+						this.status = `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} ${item.name} deleted.`
+						// Refresh current directory view
+						await this.openDir(this.currentPath)
+					} catch (e) {
+						this.error = `Failed to delete ${itemType}: ${e.message}`
+						console.error(e)
+						this.status = `Error deleting ${itemType} ${item.name}`
+						// Don't need finally loading=false here because openDir will handle it
+					}
+					// No finally needed as openDir sets loading state
+				},
+				closeInfoModal() {
+					this.showInfoModal = false
+					this.infoContent = ''
+					this.currentItemName = ''
+				},
+				closeViewModal() {
+					this.showViewModal = false
+					this.viewContent = ''
+					this.currentItemName = ''
 				},
 			},
 			mounted() {
