@@ -1,114 +1,79 @@
 const fs = require('fs-extra');
 const path = require('path');
-const archiver = require('archiver');
 const { execSync } = require('child_process');
 
 const packageJson = require('./package.json');
 const version = packageJson.version;
 const releaseDir = 'release';
 const zipName = `e2fsgui-v${version}.zip`;
-const zipPath = path.join(releaseDir, zipName);
+const stagingDir = path.join(releaseDir, `e2fsgui-v${version}`);
 
 async function build() {
 	console.log(`Building release ZIP: ${zipName}...`);
 
-	// Ensure release directory exists and is empty
+	// Prepare release and staging directories
 	await fs.ensureDir(releaseDir);
 	await fs.emptyDir(releaseDir);
+	await fs.ensureDir(stagingDir);
 
-	// Find Electron path (assuming it's in node_modules)
+	// Copy Electron distribution using macOS 'ditto' to preserve extended attributes and signatures
 	const electronPath = path.dirname(require.resolve('electron'));
 	const electronDistPath = path.join(electronPath, 'dist');
-
 	if (!await fs.pathExists(electronDistPath)) {
 		throw new Error(`Electron dist directory not found at ${electronDistPath}`);
 	}
+	console.log('Copying electron-dist with ditto...');
+	const electronDest = path.join(stagingDir, 'electron-dist');
+	execSync(`ditto "${electronDistPath}" "${electronDest}"`, { stdio: 'inherit' });
 
-	// Create ZIP archive
-	const output = fs.createWriteStream(zipPath);
-	const archive = archiver('zip', {
-		zlib: { level: 9 } // Max compression
-	});
-
-	output.on('close', () => {
-		console.log(`Created ${zipPath} (${archive.pointer()} total bytes)`);
-	});
-
-	archive.on('warning', (err) => {
-		if (err.code === 'ENOENT') {
-			console.warn('Archive warning:', err);
-		} else {
-			throw err;
-		}
-	});
-
-	archive.on('error', (err) => {
-		throw err;
-	});
-
-	archive.pipe(output);
-
-	// Add Electron distribution directory (electron-dist)
-	console.log('Adding Electron distribution...');
-	archive.directory(electronDistPath, 'electron-dist');
-
-	// Add application source directory (app)
-	console.log('Adding app source...');
-
-	const appFiles = [
-		'main.js',
-		'index.html',
-		'package.json'
-	];
-
-	appFiles.forEach(file => {
-		archive.file(file, { name: `app/${file}` });
-	});
-
-	// Include resources directory if it exists
+	// Copy application source
+	console.log('Copying app source...');
+	const appDest = path.join(stagingDir, 'app');
+	await fs.ensureDir(appDest);
+	for (const file of ['main.js', 'index.html', 'package.json']) {
+		await fs.copy(file, path.join(appDest, file));
+	}
 	if (await fs.pathExists('resources')) {
-		archive.directory('resources', 'app/resources');
+		await fs.copy('resources', path.join(appDest, 'resources'));
 	}
 
-	// Add INSTRUCTIONS.md
-	console.log('Adding INSTRUCTIONS.md...');
-	archive.file('INSTRUCTIONS.md', { name: 'INSTRUCTIONS.md' });
+	// Copy instructions
+	console.log('Copying INSTRUCTIONS.md...');
+	await fs.copy('INSTRUCTIONS.md', path.join(stagingDir, 'INSTRUCTIONS.md'));
 
-	// Add launcher script for terminal execution
-	console.log('Adding launcher script...');
-	archive.append(`#!/bin/sh
-
-# Simple launcher script for e2fsgui
-
-# If Homebrew is installed, prepend e2fsprogs keg-only paths so debugfs can be found
+	// Create launcher script
+	console.log('Creating launcher script...');
+	const launcher = `#!/bin/sh
+# Prepend Homebrew e2fsprogs if available
 if command -v brew >/dev/null 2>&1; then
   PREFIX=$(brew --prefix)
   export PATH="$PREFIX/opt/e2fsprogs/bin:$PREFIX/opt/e2fsprogs/sbin:$PATH"
 fi
-
-# Check for debugfs binary
+# Verify debugfs
 if ! command -v debugfs >/dev/null 2>&1; then
   echo "Error: e2fsprogs (debugfs) not found. Install with: brew install e2fsprogs" >&2
   exit 1
 fi
-
+# Resolve directories
 DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_DIR="$DIR/app"
 ELECTRON_BIN="$DIR/electron-dist/Electron.app/Contents/MacOS/Electron"
-
-# Verify Electron binary exists
 if [ ! -x "$ELECTRON_BIN" ]; then
   echo "Error: Electron binary not found at $ELECTRON_BIN" >&2
   exit 1
 fi
-
+APP_DIR="$DIR/app"
+# Launch with sudo for raw disk access
 echo "Launching e2fsgui…"
-exec sudo "$ELECTRON_BIN" "$APP_DIR" "${'$'}@"
-`, { name: 'e2fsprogs', mode: 0o755 });
+exec sudo "$ELECTRON_BIN" "$APP_DIR" "$@"
+`;
+	await fs.writeFile(path.join(stagingDir, 'e2fsprogs'), launcher, { mode: 0o755 });
 
-	// Finalize the archive
-	await archive.finalize();
-	console.log('Build complete.');
+	// Package with ditto to preserve macOS metadata
+	console.log('Creating ZIP with ditto...');
+	const zipPath = path.join(releaseDir, zipName);
+	execSync(`ditto -c -k --sequesterRsrc --keepParent "${stagingDir}" "${zipPath}"`, { stdio: 'inherit' });
+
+	console.log(`Created ${zipPath}`);
 }
 
 build().catch(err => {
