@@ -60,7 +60,7 @@ async function build() {
 	console.log('Copying app source...')
 	const appDest = path.join(stagingDir, 'app')
 	await fs.ensureDir(appDest)
-	for (const file of ['main.js', 'index.html', 'package.json']) {
+	for (const file of ['main.js', 'index.html', 'package.json', 'debugfs-utils.js']) {
 		await fs.copy(file, path.join(appDest, file))
 	}
 	if (await fs.pathExists('resources')) {
