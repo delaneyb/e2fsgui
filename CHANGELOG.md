@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.18](https://github.com/delaneyb/e2fsgui/compare/v1.0.17...v1.0.18) (2025-04-21)
+
+
+### Bug Fixes
+
+* update quarantine removal process to ignore errors if attribute is not present ([6df141d](https://github.com/delaneyb/e2fsgui/commit/6df141d729374982f6d3bb394ce3063f66e34ef6))
+
 ### [1.0.17](https://github.com/delaneyb/e2fsgui/compare/v1.0.15...v1.0.17) (2025-04-21)
 
 
