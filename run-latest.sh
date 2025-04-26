@@ -116,7 +116,7 @@ LAUNCHER=$(find "$EXTRACT_DIR" -name e2fsprogs -type f -perm +111 | head -n1 || 
 [ -x "$LAUNCHER" ] || { echo "❌ Launcher script 'e2fsprogs' not found in archive." >&2; exit 1; }
 
 chmod +x "$LAUNCHER"
-echo "🚀 Running $LAUNCHER ($VERSION)..."
+echo -e "\033[34m🚀 $LAUNCHER:\033[0m"
 "$LAUNCHER" "$@"
 
 # No automatic cleanup of FIXED_TMP_BASE - relies on OS /tmp cleanup
