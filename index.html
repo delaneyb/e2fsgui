@@ -6,6 +6,12 @@
 	<title>e2fsgui</title>
 	<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+	<!-- Day.js for nicer date formatting -->
+	<script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
+	<script src="https://unpkg.com/dayjs@1.11.10/plugin/relativeTime.js"></script>
+	<script src="https://unpkg.com/dayjs@1.11.10/plugin/utc.js"></script>
+	<script>dayjs.extend(window.dayjs_plugin_relativeTime)</script>
+	<script>dayjs.extend(window.dayjs_plugin_utc)</script>
 	<style>
 		body {
 			margin: 0;
@@ -53,7 +59,27 @@
 			flex: 1;
 			display: flex;
 			flex-direction: column;
-			overflow: auto;
+			position: relative;
+		}
+
+		#main.drag-over {
+			background-color: rgba(0,0,0,0.05);
+		}
+
+		.drag-over-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: rgba(0,0,0,0.1);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 18px;
+			color: #333;
+			z-index: 5;
+			pointer-events: none;
 		}
 
 		#crumb {
@@ -72,12 +98,9 @@
 		}
 
 		table {
-			border-collapse: collapse;
+			border-collapse: separate;
+			border-spacing: 0;
 			width: 100%;
-		}
-
-		tr {
-			border-bottom: 1px solid #eee;
 		}
 
 		td,
@@ -111,12 +134,12 @@
 		/* Actions row buttons */
 		.actions-row button {
 			margin: 0;
+			white-space: nowrap;
+			flex-shrink: 0;
 		}
 
-		/* Icon-only action buttons - square, centered */
+		/* Icon-only action buttons - simplified to match default button sizing */
 		.action-icon-only {
-			width: 36px;
-			height: 36px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -125,10 +148,6 @@
 			background-color: #f2f2f2;
 			cursor: pointer;
 			transition: background-color 0.2s;
-			padding: 0;
-		}
-		.action-icon-only:hover:not(:disabled) {
-			background-color: #e0e0e0;
 		}
 
 		.status-bar {
@@ -209,13 +228,6 @@
 			text-decoration: none;
 		}
 
-		table thead th {
-			position: sticky;
-			top: 40px;
-			background: #fafafa;
-			z-index: 1;
-		}
-
 		th:first-child,
 		td:first-child {
 			width: 32px;
@@ -268,6 +280,30 @@
 		.action-icon-only[style*="color:red"] {
 			color: #d32f2f;
 		}
+
+		/* Apply sticky positioning to thead */
+		table thead {
+			position: sticky;
+			top: 0;
+			background: #fafafa;
+			z-index: 1;
+		}
+
+		table thead th {
+			background: #fafafa;
+			border-bottom: 1px solid #ddd;
+		}
+
+		/* New style for the scroll container */
+		.table-scroll-container {
+			flex: 1; /* Take remaining vertical space */
+			overflow: auto; /* Enable scrolling for this container */
+			position: relative; /* Needed for sticky header positioning */
+		}
+
+		tbody tr td {
+			border-bottom: 1px solid whitesmoke;
+		}
 	</style>
 </head>
 
@@ -278,7 +314,14 @@
 				<div v-for="d in disks" :key="d.id" :class="{active: currentDev===d.id}" @click="openDisk(d)">{{ d.name }} ({{ d.size }})</div>
 				<div v-if="disks.length === 0 && !loading" style="color:#666;cursor:default;font-style:italic">No Linux partitions found</div>
 			</div>
-			<div id="main">
+			<div id="main"
+				:class="{ 'drag-over': dragOver }"
+				@dragenter.prevent="onDragEnter"
+				@dragover.prevent="onDragOver"
+				@dragleave.prevent="onDragLeave"
+				@drop.prevent="onDrop"
+			>
+				<div v-if="dragOver" class="drag-over-overlay">Drop files here to upload</div>
 				<div id="crumb">
 					<template v-if="currentDev">
 						<span v-for="(seg, idx) in crumbSegments" :key="idx">
@@ -289,71 +332,91 @@
 							</span>
 						</span>
 						<!-- Add New Folder Button -->
-						<button @click="createNewDirectory" style="margin-left: 15px;" title="Create New Folder">+</button>
+						<button @click="createNewDirectory" style="margin-left: 15px;" title="Create New Folder" class="action-icon-only"><i class="fa-solid fa-folder-plus"></i></button>
 					</template>
 					<template v-else>Select a Linux disk…</template>
 				</div>
 				<div v-if="error" class="error">{{ error }}</div>
-				<table v-if="currentDev">
-					<thead>
-						<tr>
-							<th></th>
-							<th @click="sortBy('name')" style="cursor:pointer">
-								Name <span v-if="sortKey==='name'">{{ sortAsc ? '▲' : '▼' }}</span>
-							</th>
-							<th @click="sortBy('size')" style="cursor:pointer">
-								Size <span v-if="sortKey==='size'">{{ sortAsc ? '▲' : '▼' }}</span>
-							</th>
-							<th @click="sortBy('mode')" style="cursor:pointer">
-								Mode <span v-if="sortKey==='mode'">{{ sortAsc ? '▲' : '▼' }}</span>
-							</th>
-							<th @click="sortBy('uid')" style="cursor:pointer">
-								UID <span v-if="sortKey==='uid'">{{ sortAsc ? '▲' : '▼' }}</span>
-							</th>
-							<th @click="sortBy('gid')" style="cursor:pointer">
-								GID <span v-if="sortKey==='gid'">{{ sortAsc ? '▲' : '▼' }}</span>
-							</th>
-							<th style="text-align:left;">Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr v-if="currentPath!=='/'" @click="upOne" style="cursor:pointer">
-							<td><i class="fas fa-arrow-up"></i></td>
-							<td colspan="3">..</td>
-							<td colspan="3"></td>
-						</tr>
-						<tr v-for="r in sortedRows" :key="r.name" @click="r.isDir ? openDir(r.name) : null" :style="r.isDir ? 'cursor:pointer' : ''">
-							<td>
-								<i v-if="r.fileType === 'directory'" class="fa-solid fa-folder"></i>
-								<i v-else-if="r.fileType === 'symlink'" class="fa-solid fa-link"></i>
-								<i v-else-if="r.fileType === 'block'" class="fa-solid fa-hard-drive"></i>
-								<i v-else-if="r.fileType === 'character'" class="fa-solid fa-terminal"></i>
-								<i v-else-if="r.fileType === 'fifo'" class="fa-solid fa-pipe"></i>
-								<i v-else-if="r.fileType === 'socket'" class="fa-solid fa-plug"></i>
-								<i v-else class="fa-solid fa-file"></i>
-							</td>
-							<td>{{ r.name }}</td>
-							<td>{{ r.isDir ? '' : r.size }}</td>
-							<td>{{ r.mode }}</td>
-							<td style="text-align: right;">{{ r.uid }}</td>
-							<td style="text-align: right;">{{ r.gid }}</td>
-							<td>
-								<div class="actions-row">
-									<button v-if="!r.isDir && r.fileType === 'regular'" @click.stop="viewFile(r)" title="View File Content"><i class="fa-solid fa-eye"></i> View</button>
-									<button v-if="r.fileType === 'directory'" @click.stop="saveDirectory(r)" :disabled="!!r.saveStatus && r.saveStatus !== '✔ Saved'"><i class="fa-solid fa-save"></i> {{ r.saveStatus || (r.saved ? 'Saved' : 'Save') }}</button>
-									<button v-else @click.stop="saveFile(r)" :disabled="!!r.saveStatus && r.saveStatus !== '✔ Saved'"><i class="fa-solid fa-save"></i> {{ r.saveStatus || (r.saved ? 'Saved' : 'Save') }}</button>
-									<button @click.stop="showInfo(r)" title="Show Info" class="action-icon-only"><i class="fa-solid fa-circle-info"></i></button>
-									<button @click.stop="deleteSelectedItem(r)" title="Delete Item" class="action-icon-only" style="color:red;"><i class="fa-solid fa-trash"></i></button>
-								</div>
-							</td>
-						</tr>
-						<tr v-if="rows.length === 0 && !loading && !error">
-							<td colspan="7" style="text-align:center;padding:20px;color:#666">
-								This directory is empty
-							</td>
-						</tr>
-					</tbody>
-				</table>
+				<!-- Add scroll container here -->
+				<div class="table-scroll-container">
+					<table v-if="currentDev">
+						<thead>
+							<tr>
+								<th></th>
+								<th @click="sortBy('name')" style="cursor:pointer">
+									Name <span v-if="sortKey==='name'"><i :class="sortAsc ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'"></i></span>
+								</th>
+								<th @click="sortBy('size')" style="cursor:pointer">
+									Size <span v-if="sortKey==='size'"><i :class="sortAsc ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'"></i></span>
+								</th>
+								<th @click="sortBy('mode')" style="cursor:pointer">
+									Mode <span v-if="sortKey==='mode'"><i :class="sortAsc ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'"></i></span>
+								</th>
+								<th @click="sortBy('uid')" style="cursor:pointer">
+									UID <span v-if="sortKey==='uid'"><i :class="sortAsc ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'"></i></span>
+								</th>
+								<th @click="sortBy('gid')" style="cursor:pointer">
+									GID <span v-if="sortKey==='gid'"><i :class="sortAsc ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'"></i></span>
+								</th>
+								<th @click="sortBy('mtime')" style="cursor:pointer">
+									Modified <span v-if="sortKey==='mtime'"><i :class="sortAsc ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'"></i></span>
+								</th>
+								<th style="text-align:left;">
+									Actions
+									<span style="float:right; font-weight:normal; font-size:12px; margin-left:10px;">
+										<label style="cursor:pointer; user-select:none;">
+											<input type="checkbox" v-model="separateFolders" style="vertical-align:middle; margin-right:3px;" />
+											Folders first
+										</label>
+									</span>
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-if="currentPath!=='/'" @click="upOne" style="cursor:pointer">
+								<td><i class="fas fa-arrow-up"></i></td>
+								<td colspan="3">..</td>
+								<td colspan="3"></td>
+								<td colspan="2"></td>
+							</tr>
+							<tr v-for="r in sortedRows" :key="r.name" @click="r.isDir ? openDir(r.name) : null" :style="r.isDir ? 'cursor:pointer' : ''">
+								<td>
+									<i v-if="r.fileType === 'directory'" class="fa-solid fa-folder"></i>
+									<i v-else-if="r.fileType === 'symlink'" class="fa-solid fa-link"></i>
+									<i v-else-if="r.fileType === 'block'" class="fa-solid fa-hard-drive"></i>
+									<i v-else-if="r.fileType === 'character'" class="fa-solid fa-terminal"></i>
+									<i v-else-if="r.fileType === 'fifo'" class="fa-solid fa-pipe"></i>
+									<i v-else-if="r.fileType === 'socket'" class="fa-solid fa-plug"></i>
+									<i v-else class="fa-solid fa-file"></i>
+								</td>
+								<td>{{ r.name }}</td>
+								<td>{{ r.isDir ? '' : r.size }}</td>
+								<td><span style="font-family: monospace;">{{ formatMode(r.mode) }}</span></td>
+								<td style="text-align: right;">{{ r.uid }}</td>
+								<td style="text-align: right;">{{ r.gid }}</td>
+								<td>{{ formatModified(r.mtime) }}</td>
+								<td>
+									<div class="actions-row">
+										<button v-if="!r.isDir && r.fileType === 'regular'" @click.stop="viewFile(r)" title="View File Content"><i class="fa-solid fa-eye"></i> View</button>
+										<button v-if="r.fileType === 'directory'" @click.stop="saveDirectory(r)" :disabled="!!r.saveStatus && r.saveStatus !== '✔ Saved'"><i class="fa-solid fa-save"></i> {{ r.saveStatus || (r.saved ? 'Saved' : 'Save') }}</button>
+										<button v-else @click.stop="saveFile(r)" :disabled="!!r.saveStatus && r.saveStatus !== '✔ Saved'"><i class="fa-solid fa-save"></i> {{ r.saveStatus || (r.saved ? 'Saved' : 'Save') }}</button>
+										<button @click.stop="showInfo(r)" title="Show Info" class="action-icon-only"><i class="fa-solid fa-circle-info"></i></button>
+										<button @click.stop="deleteSelectedItem(r)" title="Delete Item" class="action-icon-only" style="color:red;"><i class="fa-solid fa-trash"></i></button>
+									</div>
+								</td>
+							</tr>
+							<tr v-if="rows.length === 0 && !loading && !error">
+								<td colspan="7" style="text-align:center;padding:20px;color:#666">
+									This directory is empty
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<div v-if="currentDev" style="text-align:center; color:#888; font-size:13px; margin: 18px;">
+						<i class="fa-solid fa-file-import" style="font-size:15px; margin-right:6px;"></i> Drag and drop files or folders to upload
+					</div>
+				</div>
+				<!-- Close scroll container -->
 			</div>
 		</div>
 
@@ -379,6 +442,19 @@
 				<h3>View: {{ currentItemName }}</h3>
 				<pre style="flex: 1; overflow: auto; white-space: pre-wrap; word-wrap: break-word; background: #f8f8f8; border: 1px solid #eee; padding: 10px; min-height: 0;">{{ viewContent }}</pre>
 				<button @click="closeViewModal" style="align-self: flex-end; margin-top: 10px;">Close</button>
+			</div>
+		</div>
+
+		<!-- New Directory Modal -->
+		<div v-if="newDirModalVisible" class="loading-overlay" style="background: rgba(0,0,0,0.5); z-index: 30;" @click.self="cancelNewDirectory">
+			<div style="background: white; padding: 20px; border-radius: 5px; max-width: 90vw; min-width: 260px; display: flex; flex-direction: column; align-items: stretch;">
+				<h3 style="margin-top:0">Create New Directory</h3>
+				<input v-model="newDirName" @keyup.enter="confirmNewDirectory" placeholder="Directory name" style="font-size: 16px; padding: 6px 8px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px;" autofocus />
+				<div v-if="newDirModalError" style="color:#d32f2f; font-size:13px; margin-bottom:8px;">{{ newDirModalError }}</div>
+				<div style="display:flex; gap:10px; justify-content:flex-end;">
+					<button @click="cancelNewDirectory">Cancel</button>
+					<button @click="confirmNewDirectory" :disabled="!newDirName.trim()">Create</button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -466,29 +542,36 @@
 		}
 
 		function listDir(device, dirPath) {
-			return debugUtils.runDebugFs(device, `ls -p ${dirPath}`)
+			// Use long listing to include time info in one call
+			return debugUtils.runDebugFs(device, `ls -l ${dirPath}`)
 				.then(({ stdout }) => {
 					const rows = []
-					const outputLines = stdout.split('\n').filter(line =>
-						line.trim() !== '' &&
-						!line.startsWith('debugfs') &&
-						!line.includes('1-Jan-2025')
-					)
-					outputLines.forEach(line => {
-						const match = line.match(/^\s*\/(\d+)\/(\d+)\/(\d+)\/(\d+)\/(.+?)(\/\/|\/(\d+)\/)$/)
-						if (match) {
-							const [ , inode, mode, uid, gid, rawName, slashType, sizeStr ] = match
-							let name = rawName.trim().replace(/\\\//g, '/')
-							if (name === '.' || name === '..') return
-							const isDir = slashType === '//'
-							const rawSize = isDir ? 0 : parseInt(sizeStr || '0', 10)
-							const size = isDir ? '' : formatSize(rawSize)
-							const modeNum = parseInt(mode, 8)
-							const fileType = getFileType(modeNum)
-							rows.push({ name, isDir, size, inode, mode, uid, gid, rawSize, fileType })
-						} else {
-							console.warn('Failed to parse debugfs line:', line)
+					const monthMap = {
+						Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+						Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+					}
+					const lines = stdout.split('\n').filter(l => l.trim() && !l.startsWith('debugfs'))
+					lines.forEach(line => {
+						// Example: inode  mode (links) uid gid size 28-Jan-2022 14:14 name
+						const m = line.match(/^\s*(\d+)\s+(\d+)\s+\(\d+\)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})\s+(\d{1,2}:\d{2})\s+(.+)$/)
+						if (!m) return
+						const [ , inode, mode, uid, gid, sizeStr, day, monStr, year, timeStr, rawName ] = m
+						const name = rawName.trim()
+						if (name === '.' || name === '..') return
+						const rawSize = parseInt(sizeStr, 10)
+						const size = rawSize ? formatSize(rawSize) : ''
+						const modeNum = parseInt(mode, 8)
+						const fileType = getFileType(modeNum)
+						const mon = monthMap[monStr]
+						let mtime = null
+						if (mon !== undefined) {
+							const [hh, mm] = timeStr.split(':')
+							// Parse as local time, not UTC
+							const dateObj = new Date(parseInt(year), mon, parseInt(day), parseInt(hh), parseInt(mm))
+							mtime = Math.floor(dateObj.getTime() / 1000)
 						}
+						const isDir = fileType === 'directory'
+						rows.push({ name, isDir, size, inode, mode, uid, gid, rawSize, fileType, mtime })
 					})
 					return rows
 				})
@@ -598,14 +681,20 @@
 					debugfsPath: null,
 					e2cpPath: null,
 					scanInterval: null,
-					sortKey: 'name',
-					sortAsc: true,
+					sortKey: 'mtime',
+					sortAsc: false,
 					// New state for modals
 					showInfoModal: false,
 					infoContent: '',
 					showViewModal: false,
 					viewContent: '',
 					currentItemName: '', // For modal titles
+					dragOver: false,
+					dragCounter: 0,
+					newDirModalVisible: false,
+					newDirName: '',
+					newDirModalError: '',
+					separateFolders: false,
 				}
 			},
 			computed: {
@@ -625,8 +714,7 @@
 				sortedRows() {
 					const sorted = [...this.rows]
 					sorted.sort((a, b) => {
-						// Always sort directories first
-						if (a.isDir !== b.isDir) {
+						if (this.separateFolders && a.isDir !== b.isDir) {
 							return a.isDir ? -1 : 1
 						}
 						let result
@@ -635,14 +723,15 @@
 						} else if (this.sortKey === 'size') {
 							result = a.rawSize - b.rawSize
 						} else if (this.sortKey === 'mode') {
-							// Simple string comparison for octal mode
 							result = (a.mode || '').localeCompare(b.mode || '')
 						} else if (this.sortKey === 'uid') {
 							result = parseInt(a.uid || '0') - parseInt(b.uid || '0')
 						} else if (this.sortKey === 'gid') {
 							result = parseInt(a.gid || '0') - parseInt(b.gid || '0')
+						} else if (this.sortKey === 'mtime') {
+							result = (a.mtime || 0) - (b.mtime || 0)
 						} else {
-							result = 0 // Should not happen
+							result = 0
 						}
 						return this.sortAsc ? result : -result
 					})
@@ -715,14 +804,10 @@
 					this.rows = []
 					this.loading = true
 					this.error = null
-					// compute new absolute path for the directory
 					const oldPath = this.currentPath || '/'
-					const newPath = dir.startsWith('/')
-						? dir
-						: (oldPath === '/' ? `/${dir}` : `${oldPath}/${dir}`)
+					const newPath = dir.startsWith('/') ? dir : (oldPath === '/' ? `/${dir}` : `${oldPath}/${dir}`)
 					this.currentPath = newPath
 					this.status = `Reading directory ${newPath}...`
-
 					try {
 						this.rows = await listDir(this.currentDev, newPath)
 						this.status = `Browsing ${this.currentDev}${newPath} - ${this.rows.length} entries`
@@ -812,6 +897,11 @@
 							this.stopAutoRescan()
 							this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`
 							this.loading = false // Hide loading indicator now
+							// --- Automatically select the first disk ---
+							if (this.disks.length > 0) {
+								this.openDisk(this.disks[0])
+							}
+							// -----------------------------------------
 						} else if (currentDisks.length === 0 && this.disks.length > 0) {
 							// Disks were removed, reset state
 							this.disks = []
@@ -893,17 +983,20 @@
 					}
 				},
 				async createNewDirectory() {
-					const newDirName = prompt("Enter name for new directory:")
+					this.newDirModalVisible = true
+					this.newDirName = ''
+				},
+				async confirmNewDirectory() {
+					const newDirName = this.newDirName
 					if (!newDirName || !newDirName.trim()) {
-						return // User cancelled or entered empty name
-					}
-
-					// Basic validation for invalid characters (e.g., '/')
-					if (newDirName.includes('/')) {
-						alert("Directory name cannot contain '/'")
+						this.newDirModalVisible = false
 						return
 					}
-
+					if (newDirName.includes('/')) {
+						this.newDirModalError = "Directory name cannot contain '/'"
+						return
+					}
+					this.newDirModalVisible = false
 					this.loading = true
 					this.status = `Creating directory ${newDirName}...`
 					this.error = null
@@ -911,15 +1004,15 @@
 						const newDirPath = path.posix.join(this.currentPath, newDirName.trim())
 						await createDirectory(this.currentDev, newDirPath)
 						this.status = `Directory ${newDirName} created.`
-						// Refresh current directory view
 						await this.openDir(this.currentPath)
 					} catch (e) {
 						this.error = `Failed to create directory: ${e.message}`
 						console.error(e)
 						this.status = `Error creating directory ${newDirName}`
-						// Don't need finally loading=false here because openDir will handle it
 					}
-					// No finally needed as openDir sets loading state
+				},
+				cancelNewDirectory() {
+					this.newDirModalVisible = false
 				},
 				async deleteSelectedItem(item) {
 					const itemType = item.isDir ? 'directory' : 'file'
@@ -933,7 +1026,13 @@
 					this.error = null
 					try {
 						const fullPath = path.posix.join(this.currentPath, item.name)
-						await deleteItem(this.currentDev, fullPath, item.isDir)
+						if (item.isDir) {
+							// Recursively delete directory contents first to emulate "rm -r"
+							await this.removeDirectoryRecursive(this.currentDev, fullPath)
+							await deleteItem(this.currentDev, fullPath, true)
+						} else {
+							await deleteItem(this.currentDev, fullPath, false)
+						}
 						this.status = `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} ${item.name} deleted.`
 						// Refresh current directory view
 						await this.openDir(this.currentPath)
@@ -945,6 +1044,24 @@
 					}
 					// No finally needed as openDir sets loading state
 				},
+				// Recursively delete a directory and all its children
+				async removeDirectoryRecursive(device, dirPath) {
+					try {
+						const entries = await listDir(device, dirPath)
+						for (const entry of entries) {
+							const childPath = path.posix.join(dirPath, entry.name)
+							if (entry.isDir) {
+								await this.removeDirectoryRecursive(device, childPath)
+								await deleteItem(device, childPath, true).catch(() => {})
+							} else {
+								await deleteItem(device, childPath, false).catch(() => {})
+							}
+						}
+					} catch (err) {
+						// Log but continue – we don't want one failure to stop the whole deletion
+						console.warn(`Failed to recurse into ${dirPath}: ${err.message}`)
+					}
+				},
 				closeInfoModal() {
 					this.showInfoModal = false
 					this.infoContent = ''
@@ -954,6 +1071,106 @@
 					this.showViewModal = false
 					this.viewContent = ''
 					this.currentItemName = ''
+				},
+				onDragEnter() {
+					this.dragCounter++
+					this.dragOver = true
+				},
+				onDragOver() {
+					// No-op, just needed for .prevent
+				},
+				onDragLeave() {
+					this.dragCounter--
+					if (this.dragCounter <= 0) {
+						this.dragOver = false
+						this.dragCounter = 0
+					}
+				},
+				onDrop(event) {
+					this.dragOver = false
+					this.dragCounter = 0
+					const files = event.dataTransfer.files
+					this.uploadDroppedItems(files)
+				},
+				// Upload dropped files and directories to the current directory
+				async uploadDroppedItems(files) {
+					this.loading = true
+					this.status = `Uploading ${files.length} item(s)...`
+					this.error = null
+					try {
+						const { webUtils } = require('electron')
+						for (const file of Array.from(files)) {
+							const localPath = webUtils.getPathForFile(file)
+							if (!localPath) {
+								throw new Error(`Could not get path for dropped file: ${file.name}`)
+							}
+							const name = file.name || path.basename(localPath)
+							const fsPath = path.posix.join(this.currentPath, name)
+							
+							// Check if this is a directory
+							const stats = fs.statSync(localPath)
+							if (stats.isDirectory()) {
+								this.status = `Uploading directory ${name}...`
+								await this.uploadDirectory(localPath, fsPath)
+							} else {
+								this.status = `Uploading file ${name}...`
+								await debugUtils.runDebugFs(this.currentDev, `write ${JSON.stringify(localPath)} ${fsPath}`, { write: true })
+							}
+						}
+						this.status = `Upload complete`
+						await this.openDir(this.currentPath)
+					} catch (e) {
+						this.error = `Upload failed: ${e.message}`
+						console.error(e)
+					} finally {
+						this.loading = false
+					}
+				},
+				// Recursively upload a directory into the filesystem
+				async uploadDirectory(localDir, fsDir) {
+					this.status = `Creating directory ${path.basename(fsDir)}...`
+					await debugUtils.runDebugFs(this.currentDev, `mkdir ${fsDir}`, { write: true })
+					
+					// Read directory contents and upload each item
+					const entries = fs.readdirSync(localDir)
+					for (const entry of entries) {
+						const localEntry = path.join(localDir, entry)
+						const fsEntry = path.posix.join(fsDir, entry)
+						const stats = fs.statSync(localEntry)
+						
+						if (stats.isDirectory()) {
+							await this.uploadDirectory(localEntry, fsEntry)
+						} else if (stats.isFile()) {
+							this.status = `Uploading file ${entry}...`
+							await debugUtils.runDebugFs(this.currentDev, `write ${JSON.stringify(localEntry)} ${fsEntry}`, { write: true })
+						}
+					}
+				},
+				formatMode(modeStr) {
+					// Expect octal permission bits as string (e.g., "100755" or "0755")
+					if (!modeStr) return ''
+					let permBits = parseInt(modeStr, 8) & 0o777 // keep lower 9 bits
+					let res = ''
+					for (let i = 2; i >= 0; i--) {
+						const part = (permBits >> (i * 3)) & 0b111
+						res += (part & 4 ? 'r' : '-')
+						res += (part & 2 ? 'w' : '-')
+						res += (part & 1 ? 'x' : '-')
+					}
+					return res
+				},
+				formatModified(ts) {
+					if (ts == undefined) return ''
+					// Create Dayjs object from the (now correct) local Unix timestamp
+					const d = dayjs.unix(ts)
+					const now = dayjs() // Current local time
+					if (d.isSame(now, 'day')) {
+						return `Today at ${d.format('h:mm A')}`
+					}
+					if (d.isSame(now.subtract(1, 'day'), 'day')) {
+						return `Yesterday at ${d.format('h:mm A')}`
+					}
+					return d.format('D MMM YYYY [at] h:mm A')
 				},
 			},
 			mounted() {
