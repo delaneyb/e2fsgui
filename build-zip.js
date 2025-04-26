@@ -78,10 +78,12 @@ async function build() {
 
 	// Package with ditto to preserve macOS metadata
 	console.log('Creating ZIP with ditto...')
-	const zipPath = path.join(releaseDir, zipName)
-	execSync(`ditto -c -k --sequesterRsrc --keepParent "${stagingDir}" "${zipPath}"`, { stdio: 'inherit' })
+	// Ensure zipPath is absolute for the cd/ditto command
+	const zipPathAbs = path.resolve(releaseDir, zipName)
+	// Use cd and archive '.' to avoid including the parent staging dir in the zip
+	execSync(`cd "${stagingDir}" && ditto -c -k --sequesterRsrc . "${zipPathAbs}"`, { stdio: 'inherit' })
 
-	console.log(`Created ${zipPath}`)
+	console.log(`Created ${zipPathAbs}`)
 }
 
 build().catch(err => {
