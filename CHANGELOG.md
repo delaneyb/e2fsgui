@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/delaneyb/e2fsgui/compare/v1.2.0...v1.3.0) (2025-04-26)
+
+
+### Features
+
+* enhance README with images and improve application description ([1d167d4](https://github.com/delaneyb/e2fsgui/commit/1d167d41592a9fc737b8f06e8fe5360b6f7b2279))
+
 ## [1.2.0](https://github.com/delaneyb/e2fsgui/compare/v1.1.0...v1.2.0) (2025-04-21)
 
 
