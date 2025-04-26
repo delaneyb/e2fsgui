@@ -30,4 +30,9 @@ if (process.getuid && process.getuid() !== 0) {
 	
 		win.loadFile(path.join(__dirname, 'index.html'))
 	})
+
+	// Quit the app when all windows are closed
+	app.on('window-all-closed', () => {
+		app.quit()
+	})
 }
