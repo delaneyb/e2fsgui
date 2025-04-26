@@ -10,15 +10,25 @@ const stagingDir = path.join(releaseDir, `e2fsgui-v${version}`)
 
 const LAUNCHER_SCRIPT = `#!/bin/sh
 
-# Add Homebrew e2fsprogs to PATH if available
-if command -v brew >/dev/null 2>&1; then
-  PREFIX="$(brew --prefix)"
-  export PATH="$PREFIX/opt/e2fsprogs/bin:$PREFIX/opt/e2fsprogs/sbin:$PATH"
+# Check for Homebrew
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Error: Homebrew is not installed. Please install it with the following command:" >&2
+  echo >&2
+  echo '  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  echo >&2
+  exit 1
 fi
 
-# Require debugfs
+# Add Homebrew e2fsprogs to PATH if available
+PREFIX="$(brew --prefix)"
+export PATH="$PREFIX/opt/e2fsprogs/bin:$PREFIX/opt/e2fsprogs/sbin:$PATH"
+
+# Check for e2fsprogs (debugfs)
 if ! command -v debugfs >/dev/null 2>&1; then
-  echo "Error: e2fsprogs (debugfs) not found. Install with: brew install e2fsprogs" >&2
+  echo "Error: e2fsprogs (debugfs) not found. Please install it with the following command:" >&2
+  echo >&2
+  echo '  brew install e2fsprogs'
+  echo >&2
   exit 1
 fi
 
