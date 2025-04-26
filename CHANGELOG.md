@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/delaneyb/e2fsgui/compare/v1.5.0...v1.5.1) (2025-04-26)
+
+
+### Bug Fixes
+
+* improve Homebrew and e2fsprogs checks in build-zip.js to provide clearer installation instructions ([1fc7b73](https://github.com/delaneyb/e2fsgui/commit/1fc7b739e416055134ec271bc2255381b68ee150))
+
 ## [1.5.0](https://github.com/delaneyb/e2fsgui/compare/v1.4.1...v1.5.0) (2025-04-26)
 
 
