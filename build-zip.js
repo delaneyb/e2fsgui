@@ -35,7 +35,8 @@ fi
 # Remove quarantine attribute from Electron.app, ignore if not present
 xattr -d com.apple.quarantine "$ELECTRON_DIST" 2>/dev/null || true
 
-echo "Launching e2fsgui..."
+echo "e2fsgui needs root privileges (via sudo) to read raw disk devices."
+echo "See README.md for details on why this is necessary."
 exec sudo "$ELECTRON_BIN" "$APP_DIR" "$@"
 `
 

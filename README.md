@@ -2,7 +2,7 @@
   <img src="resources/icon.png" alt="e2fsgui icon" width="180" height="180" />
 </p>
 
-<p align="center"><span style="font-size:2em; font-weight:bold;">e2fsgui (macOS)</span></p>
+# e2fsgui (macOS)
 
 <p align="center">
   <img src="./screenshot.png" alt="screenshot" width="500" />
@@ -21,6 +21,45 @@ Built using `e2fsprogs` (via Homebrew) for reliability.
 * Copy out individual files **or whole directories** to your macOS file‑system preserving ownership.
 * No kernel extensions – works entirely through `debugfs` from **e2fsprogs** installed via Homebrew.
 * Built with **Vue 3** + **Electron**.
+
+## Installation & Usage (End Users)
+
+### Quick Install & Run (Recommended)
+
+You can use the following command in your Terminal to automatically install dependencies (like Homebrew, e2fsprogs), download the latest release, and run the application:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/delaneyb/e2fsgui/main/run-latest-e2fsgui.sh | bash
+```
+
+> **Security Note:** This command downloads and executes a script from the internet. The script will install Homebrew and `e2fsprogs` if they are missing, and then run the e2fsgui launcher, which will prompt for `sudo` access separately. Please review the [run-latest-e2fsgui.sh](run-latest-e2fsgui.sh) script yourself before running this command to ensure you trust its contents.
+
+### Manual Installation
+
+If you prefer not to use the automated script:
+
+1.  **Prerequisites:**
+    *   Ensure you have [Homebrew](https://brew.sh) installed.
+    *   Install `e2fsprogs`: `brew install e2fsprogs`
+
+2.  **Download:**
+    *   Go to the [**Releases Page**](https://github.com/delaneyb/e2fsgui/releases).
+    *   Download the latest `e2fsgui-vX.Y.Z.zip` file.
+    *   Extract the ZIP archive (e.g., to your Downloads folder).
+
+3.  **Run:**
+    *   Open the **Terminal** app.
+    *   Navigate into the extracted directory using `cd`. Example:
+        ```bash
+        cd ~/Downloads/e2fsgui-vX.Y.Z
+        ```
+        *(Replace `X.Y.Z` with the actual version number)*
+    *   Run the application using `sudo`:
+        ```bash
+        sudo ./e2fsprogs
+        ```
+    *   Enter your macOS password when prompted.
+    *   The e2fsgui application window will appear.
 
 ## Approach & Rationale (Root Access)
 
