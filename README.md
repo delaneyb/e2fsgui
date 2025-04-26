@@ -8,7 +8,7 @@
   <img src="./screenshot.png" alt="screenshot" width="500" />
 </p>
 
-**Problem:** Accessing Linux `ext2/3/4` filesystems on macOS often requires commercial software (like Paragon) or complex setups involving system extensions and background daemons (like macFUSE). There isn't a simple, standalone app just for quickly browsing and copying files without persistent system modifications.
+**Problem:** Accessing Linux `ext2/3/4` filesystems on macOS often requires commercial software (like Paragon) or complex setups involving system extensions and background daemons (like macFUSE). There isn't a simple, standalone app just for quickly browsing and copying files without persistent background daemons.
 
 **Solution:** `e2fsgui` is a lightweight, user-friendly Electron app that lets you **browse, read, and copy files/directories** from Linux disks directly on your Mac. No complex setups, just plug in your disk and go!
 
