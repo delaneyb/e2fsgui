@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="resources/icon.png" alt="e2fsgui icon" width="180" height="180" />
+  <img src="readme-icon.png" alt="e2fsgui icon" width="180" height="180" />
 </p>
 
 # e2fsgui (macOS)
 
 <p align="center">
-  <img src="./screenshot.png" alt="screenshot" width="500" />
+  <img src="./screenshot.png" alt="screenshot" />
 </p>
 
 **Problem:** Accessing Linux `ext2/3/4` filesystems on macOS often requires commercial software (like Paragon) or complex setups involving system extensions and background daemons (like macFUSE). There isn't a simple, standalone app just for quickly browsing and copying files without persistent background daemons.
