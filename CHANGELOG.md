@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.1](https://github.com/delaneyb/e2fsgui/compare/v1.3.0...v1.3.1) (2025-04-26)
+
+
+### Bug Fixes
+
+* improve ZIP creation process and enhance run-latest.sh with user-friendly prompts and caching ([1f63f3b](https://github.com/delaneyb/e2fsgui/commit/1f63f3b18eb4d716f9ce551762cb8c8256fa1d50))
+
 ## [1.3.0](https://github.com/delaneyb/e2fsgui/compare/v1.2.0...v1.3.0) (2025-04-26)
 
 
