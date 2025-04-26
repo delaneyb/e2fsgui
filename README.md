@@ -1,18 +1,18 @@
-# e2fsgui (macOS)
-
 <p align="center">
   <img src="resources/icon.png" alt="e2fsgui icon" width="96" height="96" />
 </p>
-
-<p align="center"><b>Browse, read and rescue files from Linux ext2/3/4 disks on macOS</b></p>
 
 <p align="center">
   <img src="./screenshot.png" alt="screenshot" width="500" />
 </p>
 
-A lightweight Electron application to **browse, read and rescue files** from Linux ext2/3/4 disks on macOS using the `e2fsprogs` tool‑chain.
+# e2fsgui (macOS)
 
----
+**Problem:** Accessing Linux `ext2/3/4` filesystems on macOS often requires commercial software (like Paragon) or complex setups involving system extensions and background daemons (like macFUSE). There isn't a simple, standalone app just for quickly browsing and copying files without persistent system modifications.
+
+**Solution:** `e2fsgui` is a lightweight, user-friendly Electron app that lets you **browse, read, and copy files/directories** from Linux disks directly on your Mac. No complex setups, just plug in your disk and go!
+
+Built using `e2fsprogs` (via Homebrew) for reliability.
 
 ## Features
 
@@ -21,8 +21,6 @@ A lightweight Electron application to **browse, read and rescue files** from Lin
 * Copy out individual files **or whole directories** to your macOS file‑system preserving ownership.
 * No kernel extensions – works entirely through `debugfs` from **e2fsprogs** installed via Homebrew.
 * Built with **Vue 3** + **Electron**.
-
----
 
 ## Approach & Rationale (Root Access)
 
@@ -36,8 +34,6 @@ Directly reading raw disk devices (e.g., `/dev/disk2s1`) on macOS requires root 
 *   **Simplicity & Reliability:** Launching via `sudo` from the Terminal provides the necessary root privileges *and* the correct security context inherited from the user's shell session, avoiding these issues. This is the most reliable method without implementing a complex helper tool.
 
 Therefore, this app is distributed as a simple ZIP archive containing the necessary Electron binary and source code, intended to be run directly via a `sudo` command.
-
----
 
 ## Getting Started (Developers)
 
@@ -56,8 +52,6 @@ The application expects the [Homebrew](https://brew.sh) package **e2fsprogs** to
 ```bash
 brew install e2fsprogs
 ```
-
----
 
 ## Building a Release ZIP
 
@@ -80,8 +74,6 @@ This will:
 
 The resulting ZIP file is the distributable release artifact.
 
----
-
 ## Folder Structure (Simplified)
 
 ```
@@ -94,8 +86,6 @@ The resulting ZIP file is the distributable release artifact.
 │   └── icon.icns      # App icon (used in ZIP)
 └── .github/workflows/build.yml # GitHub Actions for building release ZIP
 ```
-
----
 
 ## License
 
