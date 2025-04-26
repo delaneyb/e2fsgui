@@ -1,8 +1,16 @@
 # e2fsgui (macOS)
 
-A lightweight Electron application to **browse, read and rescue files** from Linux ext2/3/4 disks on macOS using the `e2fsprogs` tool‑chain.
+<p align="center">
+  <img src="resources/icon.png" alt="e2fsgui icon" width="96" height="96" />
+</p>
 
-![screenshot](https://raw.githubusercontent.com/delaneyb/e2fsgui/main/.github/screenshot.png)
+<p align="center"><b>Browse, read and rescue files from Linux ext2/3/4 disks on macOS</b></p>
+
+<p align="center">
+  <img src="./screenshot.png" alt="screenshot" width="500" />
+</p>
+
+A lightweight Electron application to **browse, read and rescue files** from Linux ext2/3/4 disks on macOS using the `e2fsprogs` tool‑chain.
 
 ---
 
