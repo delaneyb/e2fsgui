@@ -39,6 +39,12 @@ curl -fsSL https://raw.githubusercontent.com/delaneyb/e2fsgui/main/run-latest.sh
 
 > **Security Note:** This command downloads and executes a script from the internet. The script will install Homebrew and `e2fsprogs` if they are missing, and then run the e2fsgui launcher, which will prompt for `sudo` access separately. Please review the [run-latest.sh](run-latest.sh) script yourself before running this command to ensure you trust its contents.
 
+## Disclaimer / Warning ⚠️
+
+**Use this software at your own risk.** Filesystem operations, especially those involving writing or deleting data (like creating directories, uploading files, or deleting items), inherently carry risks. While `e2fsgui` uses standard tools (`debugfs` from `e2fsprogs`), bugs in this application, the underlying tools, or unexpected system interactions could potentially lead to **data loss or filesystem corruption**.
+
+**Always have backups of important data** before using any tool that modifies filesystems. The authors assume **no responsibility** for any damage or data loss resulting from the use or misuse of this software.
+
 ### Manual Installation
 
 If you prefer not to use the automated script:
@@ -130,6 +136,91 @@ The resulting ZIP file is the distributable release artifact.
 │   └── icon.icns      # App icon (used in ZIP)
 └── .github/workflows/build.yml # GitHub Actions for building release ZIP
 ```
+
+## Feature Implementation Status
+
+This table tracks which core `debugfs` commands and other relevant `e2fsprogs` features are currently exposed via the `e2fsgui` interface.
+
+| Feature / Command         | Implemented? | Notes / Underlying Command(s)                                    |
+| :------------------------ | :----------: | :--------------------------------------------------------------- |
+| **Core GUI Features**     |              |                                                                  |
+| List Directory Contents   |     `[x]`    | `debugfs ls -l`                                                  |
+| Get File/Inode Info       |     `[x]`    | `debugfs stat`                                                   |
+| Copy File Out (Download)  |     `[x]`    | `debugfs dump -p`                                                |
+| Copy Directory Out        |     `[x]`    | `debugfs rdump`                                                  |
+| Create Directory          |     `[x]`    | `debugfs mkdir`                                                  |
+| Delete File               |     `[x]`    | `debugfs rm` (which uses `unlink` and potentially `kill_file`) |
+| Delete Directory          |     `[x]`    | `debugfs rmdir` (GUI handles recursion via multiple `rm`/`rmdir`)|
+| Upload File (Write)       |     `[x]`    | `debugfs write`                                                  |
+| Upload Directory          |     `[x]`    | `debugfs mkdir` + recursive `debugfs write`                    |
+| Preview Text File         |     `[x]`    | `debugfs cat`                                                    |
+| Change Directory (Internal)|    `[x]`    | Path management within GUI, uses full paths for commands         |
+| **Other `debugfs` Commands**|              |                                                                  |
+| `blocks`                  |     `[ ]`    | Dump blocks used by an inode                                     |
+| `bmap`                    |     `[ ]`    | Show logical->physical block mapping                             |
+| `chroot`                  |     `[ ]`    | Change root directory                                            |
+| `clri`                    |     `[ ]`    | Clear an inode's contents                                        |
+| `copy_inode`              |     `[ ]`    | Copy inode structure                                             |
+| `dirsearch`               |     `[ ]`    | Search directory for filename                                    |
+| `dump_extents` / `extents`|     `[ ]`    | Dump extent tree information                                     |
+| `dx_hash` / `hash`        |     `[ ]`    | Calculate directory hash                                         |
+| `expand_dir`              |     `[ ]`    | Expand directory                                                 |
+| `fallocate`               |     `[ ]`    | Allocate blocks to an inode                                      |
+| `feature` / `features`    |     `[ ]`    | Set/print superblock features                                    |
+| `filefrag`                |     `[ ]`    | Report inode fragmentation (also `filefrag` binary)            |
+| `find_free_block` (`ffb`) |     `[ ]`    | Find/allocate free blocks                                        |
+| `find_free_inode` (`ffi`) |     `[ ]`    | Find/allocate free inodes                                        |
+| `freeb`                   |     `[ ]`    | Mark block as free                                               |
+| `freefrag`                |     `[ ]`    | Report free space fragmentation (also `e2freefrag` binary)     |
+| `freei`                   |     `[ ]`    | Mark inode as free                                               |
+| `htree_dump` / `htree`    |     `[ ]`    | Dump hash-indexed directory tree                                 |
+| `icheck`                  |     `[ ]`    | Do block->inode translation                                      |
+| `imap`                    |     `[ ]`    | Find inode structure location                                    |
+| `init_filesys`            |     `[ ]`    | **DANGEROUS** - Initialize filesystem                            |
+| `kill_file`               |     `[ ]`    | Deallocate inode (used by `rm`, not directly exposed)          |
+| `link` / `ln`             |     `[ ]`    | Create hard link                                                 |
+| `list_deleted_inodes`     |     `[ ]`    | List deleted inodes                                              |
+| `logdump`                 |     `[ ]`    | Dump journal contents                                            |
+| `mknod`                   |     `[ ]`    | Create special file                                              |
+| `modify_inode` (`mi`)     |     `[ ]`    | Modify inode structure                                           |
+| `ncheck`                  |     `[ ]`    | Do inode->name translation                                       |
+| `punch` / `truncate`      |     `[ ]`    | Deallocate blocks from inode                                     |
+| `setb`                    |     `[ ]`    | Mark block as used                                               |
+| `set_block_group`         |     `[ ]`    | Modify block group descriptor                                    |
+| `set_inode_field`         |     `[ ]`    | Modify inode field                                               |
+| `set_super_value`         |     `[ ]`    | Modify superblock field                                          |
+| `seti`                    |     `[ ]`    | Mark inode as used                                               |
+| `show_super_stats`/`stats`|     `[ ]`    | Show superblock statistics                                         |
+| `symlink`                 |     `[ ]`    | Create symbolic link                                             |
+| `testb`                   |     `[ ]`    | Test if block is used                                            |
+| `testi`                   |     `[ ]`    | Test if inode is used                                            |
+| `undelete` / `undel`     |     `[ ]`    | Undelete file                                                    |
+| `unlink`                  |     `[ ]`    | Remove directory entry (used by `rm`, not directly exposed)      |
+| *(Other cmds omitted)*    |     `[ ]`    | e.g., `dirty`, `ea_*`, `journal_*`, `quota`, `zap_block`...    |
+| **Other `e2fsprogs` Binaries** |         |                                                                  |
+| `dumpe2fs`               |     `[ ]`    | Dump filesystem information (alternative to `debugfs stats`)       |
+| `e2freefrag`              |     `[ ]`    | Report free space fragmentation (alternative to `debugfs freefrag`)| 
+| `e2label`                 |     `[ ]`    | Get/Set filesystem label                                         |
+| `tune2fs`                 |     `[ ]`    | Tune filesystem parameters                                         |
+| `blkid`                   |     `[ ]`    | Locate/print block device attributes                             |
+| `fsck`/`e2fsck`           |     `[ ]`    | Filesystem check/repair (outside current scope)                  |
+| `mke2fs`/`mkfs.*`         |     `[ ]`    | Create filesystem (outside current scope)                        |
+| *(Others omitted)*        |     `[ ]`    | e.g., `badblocks`, `resize2fs`, `e2image`, `e2undo`...         |
+
+## Future Work / TODOs
+
+*   **Filesystem Info Display:** Add a view to show superblock details and enabled filesystem features (using `debugfs stats` or `dumpe2fs`).
+*   **File Fragmentation Info:** Add an action to display fragmentation details for a selected file (using `debugfs filefrag`).
+*   **Directory Search:** Implement a simple search within the current directory (using `debugfs dirsearch`).
+*   **Extent Tree View:** Add an action to visualize the extent tree for a file (using `debugfs dump_extents`).
+*   **Block Map View:** Add an action to show the logical-to-physical block mapping for a file (using `debugfs bmap`).
+*   **Free Space Fragmentation Report:** Add a way to view overall filesystem free space fragmentation (using `e2freefrag` binary).
+*   **Progress Indicators:** Show detailed progress for long-running operations like large file/directory copies, uploads, or deletions.
+*   **Improved Symlink Handling:** Offer options for how to handle symbolic links during copy operations (copy the link itself vs. copy the target file/directory).
+*   **Configurable `debugfs` Path:** Allow users to specify the path to `debugfs` if it's not found in the default Homebrew locations.
+*   **Enhanced Error Reporting:** Provide more specific error messages in the UI for different `debugfs` failures (e.g., disk I/O errors, filesystem corruption hints).
+*   **More File Previews:** Add in-app previews for common image formats or other file types beyond plain text.
+*   **(Ambitious) Privileged Helper Tool:** Investigate replacing the `sudo` requirement with a standard macOS Privileged Helper Tool for a more conventional user experience (this is a significant undertaking).
 
 ## License
 
