@@ -10,17 +10,22 @@
 
 **Problem:** Accessing Linux `ext2/3/4` filesystems on macOS often requires commercial software (like Paragon) or complex setups involving system extensions and background daemons (like macFUSE). There isn't a simple, standalone app just for quickly browsing and copying files without persistent background daemons.
 
-**Solution:** `e2fsgui` is a lightweight, user-friendly Electron app that lets you **browse, read, and copy files/directories** from Linux disks directly on your Mac. No complex setups, just plug in your disk and go!
+**Solution:** `e2fsgui` is a lightweight, user-friendly Electron app that lets you **browse, read, copy, upload, create directories, and delete files/directories** from Linux disks directly on your Mac. No complex setups, just plug in your disk and go!
 
 Built using `e2fsprogs` (via Homebrew) for reliability.
 
 ## Features
 
-* Automatically detects ext2/3/4 partitions plugged into your Mac.
-* Browse directories, preview sizes, sort by name/size.
-* Copy out individual files **or whole directories** to your macOS file‑system preserving ownership.
-* No kernel extensions – works entirely through `debugfs` from **e2fsprogs** installed via Homebrew.
-* Built with **Vue 3** + **Electron**.
+*   Automatically detects ext2/3/4 partitions plugged into your Mac, **and dynamically scans for changes** (new drives plugged in or removed).
+*   Browse directories, preview sizes, sort by name/size/mode/owner/modified date.
+*   Copy out individual files **or whole directories** to your macOS file‑system preserving ownership.
+*   **Upload files and directories** from your Mac to the Linux filesystem (drag and drop).
+*   **Create new directories** within the Linux filesystem.
+*   **Delete files and directories** (recursively for directories) within the Linux filesystem.
+*   View basic file/inode information.
+*   Preview text-based file content directly in the app.
+*   No kernel extensions – works entirely through `debugfs` from **e2fsprogs** installed via Homebrew.
+*   Built with **Vue 3** + **Electron**.
 
 ## Installation & Usage (End Users)
 

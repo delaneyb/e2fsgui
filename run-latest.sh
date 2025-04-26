@@ -91,7 +91,7 @@ EXTRACT_DIR="$FIXED_TMP_BASE/e2fsgui-$VERSION"
 if [ -f "$ZIP_PATH" ]; then
   echo "✅ Using cached ZIP: $ZIP_PATH"
 else
-  echo "⬇️  Downloading release $VERSION (progress bar below)..."
+  echo "⬇️  Downloading release $VERSION..."
   curl -L -# -o "$ZIP_PATH" "$ZIP_URL"
   echo "✅ Download complete."
 fi
