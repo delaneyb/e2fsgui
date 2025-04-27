@@ -31,7 +31,7 @@ Built using `e2fsprogs` (via Homebrew) for reliability.
 
 ### Quick Install & Run (Recommended)
 
-You can use the following command in your Terminal to automatically install dependencies (like Homebrew, e2fsprogs), download the latest release, and run the application:
+You can use the following command in your Terminal to check dependencies (like Homebrew, e2fsprogs), download the latest release, and run the application:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/delaneyb/e2fsgui/main/run-latest.sh | bash
