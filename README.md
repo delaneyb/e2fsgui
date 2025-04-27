@@ -37,7 +37,7 @@ You can use the following command in your Terminal to check dependencies (like H
 curl -fsSL https://raw.githubusercontent.com/delaneyb/e2fsgui/main/run-latest.sh | bash
 ```
 
-> **Security Note:** This command downloads and executes a script from the internet. The script will install Homebrew and `e2fsprogs` if they are missing, and then run the e2fsgui launcher, which will prompt for `sudo` access separately. Please review the [run-latest.sh](run-latest.sh) script yourself before running this command to ensure you trust its contents.
+> **Security Note:** This command downloads and executes a script from the internet. The script will check for Homebrew and `e2fsprogs`, and if they are missing, it will prompt you with the command needed to install them and then exit. It will then run the e2fsgui launcher, which will prompt for `sudo` access separately. Please review the [run-latest.sh](run-latest.sh) script yourself before running this command to ensure you trust its contents.
 
 ## Disclaimer / Warning ⚠️
 
