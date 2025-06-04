@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/delaneyb/e2fsgui/compare/v1.5.1...v1.6.0) (2025-06-04)
+
+
+### Features
+
+* add filter functionality to UI for improved disk partition browsing experience ([f385df2](https://github.com/delaneyb/e2fsgui/commit/f385df2181d2fed3b57140b5092b42380cf28c8c))
+
 ### [1.5.1](https://github.com/delaneyb/e2fsgui/compare/v1.5.0...v1.5.1) (2025-04-26)
 
 
