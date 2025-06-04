@@ -327,6 +327,12 @@
 				</div>
 			
 				<button @click="createNewDirectory" style="margin-left: 15px;" title="Create New Folder" class="action-icon-only"><i class="fa-solid fa-folder-plus"></i></button>
+				<!-- Filter toggle & input -->
+				<button v-if="!filterVisible" @click="toggleFilter()" title="Filter (⌘F)" class="action-icon-only" style="margin-left:8px;"><i class="fa-solid fa-filter"></i></button>
+				<div v-if="filterVisible" style="display:flex; align-items:center; margin-left:8px; gap:6px;">
+					<input ref="filterInput" v-model="filterText" placeholder="Filter..." style="padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-size:13px;" />
+					<button @click="toggleFilter(false)" title="Clear Filter" class="action-icon-only"><i class="fa-solid fa-xmark"></i></button>
+				</div>
 			</div>
 			<div v-if="error" class="error">{{ error }}</div>
 			<div class="table-scroll-container">
@@ -518,18 +524,30 @@
 		const data = plistXmlToJson(xml)
 		if (!data.AllDisksAndPartitions) return []
 		return data.AllDisksAndPartitions.flatMap(d => {
-			// Make sure this disk has partitions
-			if (!d.Partitions) return []
+			// Exclude partitions we can *definitively* identify as non-Linux/ext, such as
+			// APFS, HFS+, NTFS, FAT/exFAT, or the EFI system partition. Anything else
+			// (including the generic "Microsoft Basic Data") is left in the list so the
+			// user can attempt to open it.
+			const excludePatterns = [/APFS/i, /HFS/i, /NTFS/i, /exFAT/i, /FAT/i, /^EFI$/i]
 
-			// Filter and map partitions with Linux content
-			return d.Partitions
-				.filter(p => /Linux/i.test(p.Content || ''))
-				.map(p => ({
-					id: p.DeviceIdentifier,
-					name: p.VolumeName || p.DeviceIdentifier,
-					size: p.Size ? formatSize(p.Size) : 'Unknown',
-					sizeBytes: p.Size || 0
-				}))
+			return (d.Partitions || [])
+				.filter(p => {
+					const content = (p.Content || '').trim()
+					return !excludePatterns.some(rx => rx.test(content))
+				})
+				.map(p => {
+					// Build friendlier name (existing logic)
+					const friendly = p.VolumeName && p.VolumeName.trim()
+						? p.VolumeName.trim()
+						: (p.Content && p.Content.trim() ? p.Content.trim() : p.DeviceIdentifier)
+
+					return {
+						id: p.DeviceIdentifier,
+						name: friendly,
+						size: p.Size ? formatSize(p.Size) : 'Unknown',
+						sizeBytes: p.Size || 0
+					}
+				})
 		})
 	}
 
@@ -544,7 +562,10 @@
 	function listDir(device, dirPath) {
 		// Use long listing to include time info in one call
 		return debugUtils.runDebugFs(device, `ls -l ${dirPath}`)
-			.then(({ stdout }) => {
+			.then(({ stdout, stderr }) => {
+				if (!stdout.trim() && stderr && stderr.trim()) {
+					throw new Error(stderr.trim())
+				}
 				const lines = stdout.split('\n').filter(l => l.trim() && !l.startsWith('debugfs'))
 				return lines.flatMap(line => {
 					const m = line.match(/^\s*(\d+)\s+(\d+)\s+\(\d+\)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d{1,2}-[A-Za-z]{3}-\d{4} \d{1,2}:\d{2})\s+(.+)$/)
@@ -662,7 +683,7 @@
 				rows: [],
 				lastDestDir: path.join(os.homedir(), 'Downloads'),
 				loading: true,
-				status: 'Looking for Linux partitions...',
+				status: 'Looking for disk partitions...',
 				error: null,
 				debugfsPath: null,
 				e2cpPath: null,
@@ -681,6 +702,9 @@
 				newDirName: '',
 				newDirModalError: '',
 				separateFolders: false,
+				// Filter feature state
+				filterText: '',
+				filterVisible: false,
 			}
 		},
 		computed: {
@@ -698,7 +722,12 @@
 				return segments
 			},
 			sortedRows() {
-				const sorted = [...this.rows]
+				let rows = this.rows
+				if (this.filterText && this.filterText.trim()) {
+					const q = this.filterText.trim().toLowerCase()
+					rows = rows.filter(r => r.name.toLowerCase().includes(q))
+				}
+				const sorted = [...rows]
 				sorted.sort((a, b) => {
 					if (this.separateFolders && a.isDir !== b.isDir) {
 						return a.isDir ? -1 : 1
@@ -750,7 +779,7 @@
 				this.error = null
 
 				if (showLoading) {
-					this.status = "Looking for Linux partitions..."
+					this.status = "Looking for disk partitions..."
 				}
 
 				if (!this.findTools()) {
@@ -768,7 +797,7 @@
 					} else {
 						// If disks found, stop auto-rescanning and hide loading indicator
 						this.stopAutoRescan()
-						this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`
+						this.status = `Found ${this.disks.length} partition(s). Select one to browse.`
 						this.loading = false
 						// Auto-select first disk if none selected
 						if (!this.currentDev) {
@@ -776,7 +805,7 @@
 						}
 					}
 				} catch (e) {
-					this.error = `Error detecting Linux partitions: ${e.message}`
+					this.error = `Error detecting partitions: ${e.message}`
 					console.error(e)
 					this.loading = false
 					this.stopAutoRescan() // Stop scanning on error
@@ -861,7 +890,7 @@
 			startAutoRescan() {
 				this.stopAutoRescan() // Ensure no duplicate intervals
 
-				this.status = "Scanning for Linux partitions (plug in drive if needed)..."
+				this.status = "Scanning for disk partitions (plug in drive if needed)..."
 				this.loading = true
 
 				// Initial scan immediately
@@ -881,7 +910,7 @@
 					if (currentDisks.length > 0 && this.disks.length === 0) {
 						this.disks = currentDisks
 						this.stopAutoRescan()
-						this.status = `Found ${this.disks.length} Linux partition(s). Select one to browse.`
+						this.status = `Found ${this.disks.length} partition(s). Select one to browse.`
 						this.loading = false // Hide loading indicator now
 						// --- Automatically select the first disk ---
 						if (this.disks.length > 0) {
@@ -1158,6 +1187,30 @@
 				}
 				return d.format('D MMM YYYY [at] h:mm A')
 			},
+			// ---------------- Filter helpers ----------------
+			toggleFilter(forceVisible = null) {
+				if (forceVisible === null) {
+					this.filterVisible = !this.filterVisible
+				} else {
+					this.filterVisible = forceVisible
+				}
+				if (this.filterVisible) {
+					this.$nextTick(() => {
+						const input = this.$refs.filterInput
+						if (input) input.focus()
+					})
+				} else {
+					this.filterText = ''
+				}
+			},
+			onGlobalKeydown(e) {
+				if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+					e.preventDefault()
+					this.toggleFilter(true)
+				} else if (e.key === 'Escape' && this.filterVisible) {
+					this.toggleFilter(false)
+				}
+			},
 		},
 		mounted() {
 			// Initial setup: Find tools and start scanning
@@ -1167,9 +1220,11 @@
 				this.startAutoRescan()
 			}
 			// If findTools failed, it will have set loading=false and an error message.
+			window.addEventListener('keydown', this.onGlobalKeydown)
 		},
 		beforeUnmount() {
 			this.stopAutoRescan() // Clean up interval on component destruction
+			window.removeEventListener('keydown', this.onGlobalKeydown)
 		}
 	}).mount('#app');
 </script>

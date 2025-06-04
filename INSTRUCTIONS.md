@@ -31,4 +31,15 @@ This application allows you to browse and copy files from Linux ext2/3/4 formatt
 
 ## Why sudo?
 
-Directly reading disk devices (like `/dev/disk2s1`) on macOS requires root privileges. While standard macOS apps use complex "Privileged Helper Tools" to request this access with a graphical prompt, this application uses the simpler approach of requiring `sudo` in the Terminal. This ensures compatibility and avoids issues with macOS security features (like SIP) that restrict GUI-based privilege escalation. 
+Directly reading disk devices (like `/dev/disk2s1`) on macOS requires root privileges. While standard macOS apps use complex "Privileged Helper Tools" to request this access with a graphical prompt, this application uses the simpler approach of requiring `sudo` in the Terminal.
+
+### Alternative Approach (Privileged Helper Tool)
+
+We have explored non-root methods (using `authopen`, dynamic library shims, and wrapper binaries) to inject a privileged file descriptor into `debugfs`, but macOS security constraints and internal `e2fsprogs` library calls prevented these from working reliably. **Note:** simply pointing debugfs at `/dev/fd/3` does not work because debugfs always re-opens the given path (performing a fresh permission check). There is no debugfs flag to accept a pre-opened file descriptor; the `-d` option only applies in image-mode with `-i`, not for raw block devices. A more robust solution is to implement a **Privileged Helper Tool** (as used by Raspberry Pi Imager):
+
+1.  Ship a small root-owned helper tool via `SMJobBless` or a `launchd` daemon.
+2.  Authenticate the user in the unprivileged UI using macOS Authorization Services (Touch ID or password).
+3.  Communicate securely over XPC from the UI to the helper.
+4.  The helper, running as root, opens the disk and runs `debugfs` commands, returning results to the UI.
+
+This approach keeps the Electron UI unprivileged and avoids repeated `Permission denied` errors, but requires additional setup (code signing, helper design, XPC interface). 

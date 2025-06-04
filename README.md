@@ -72,7 +72,7 @@ If you prefer not to use the automated script:
     *   Enter your macOS password when prompted.
     *   The e2fsgui application window will appear.
 
-## Approach & Rationale (Root Access)
+## Approach & Rationale (Root Access and Alternative Approaches)
 
 Directly reading raw disk devices (e.g., `/dev/disk2s1`) on macOS requires root privileges. While standard macOS apps use complex "Privileged Helper Tools" (installed via `SMJobBless`) to request this access with a native graphical prompt, this application uses a simpler approach:
 
@@ -80,10 +80,36 @@ Directly reading raw disk devices (e.g., `/dev/disk2s1`) on macOS requires root 
 
 **Why?**
 
-*   **macOS Security:** Modern macOS (SIP, TCC) heavily restricts GUI applications attempting to escalate their *own* privileges to root using tools like `sudo-prompt`. These escalated processes run in a different security context and often cannot access necessary files (like `package.json`) or the user's original working directory, leading to `EPERM` or `uv_cwd` errors.
-*   **Simplicity & Reliability:** Launching via `sudo` from the Terminal provides the necessary root privileges *and* the correct security context inherited from the user's shell session, avoiding these issues. This is the most reliable method without implementing a complex helper tool.
+* **macOS Security:** Modern macOS (SIP, TCC) heavily restricts GUI applications attempting to escalate their *own* privileges to root using tools like `sudo-prompt`. These escalated processes run in a different security context and often cannot access necessary files or the user's original working directory, leading to `EPERM` or `uv_cwd` errors.
+* **Simplicity & Reliability:** Launching via `sudo` from the Terminal provides the necessary root privileges *and* the correct security context inherited from the user's shell session, avoiding these issues.
 
-Therefore, this app is distributed as a simple ZIP archive containing the necessary Electron binary and source code, intended to be run directly via a `sudo` command.
+---
+
+### Attempts to Remove `sudo` Requirement
+
+We have experimented with several non-root techniques to inject a privileged file descriptor into `debugfs`, but each ran into macOS security or implementation hurdles:
+
+- **`authopen` + `/dev/fd` Proxy:** Tried using `authopen -stdoutpipe` to hand off an open FD and passing `/dev/fd/N` to `debugfs`. Kernel enforces permissions on open, so unprivileged processes cannot open the device path.
+- **Passing `/dev/fd/N`:** Simply pointing debugfs at `/dev/fd/3` doesn't reuse FD 3; debugfs re-opens that path itself, triggering a fresh permission check on the raw device and failing with EPERM. **Note:** debugfs has no command-line option to accept a pre-opened file descriptor—its `-d` flag applies only in image-mode with `-i`, not for raw block devices.
+- **Dynamic Library Shim:** Created `libopenproxy.dylib` to `DYLD_INSERT_LIBRARIES`–interpose `open()`, `openat()`, `stat()`, `access()`, and even `syscall()` wrappers to dup() the authorized FD. Faced macOS two-level namespace restrictions and found that `debugfs` often calls internal `_ext2fs_open` routines that bypass libc wrappers entirely.
+- **Wrapper Tool:** Built `debugfs-wrapper` C helper that runs `authopen`, dup2()s the FD to fd 3, sets `DYLD_INSERT_LIBRARIES` + `DYLD_FORCE_FLAT_NAMESPACE`, then execs `debugfs`. Despite detailed logging, `debugfs` continued to report `Permission denied`.
+- **Direct System Call Interposition:** Added a shim for `syscall(SYS_open,…)` and `SYS_openat` to catch direct syscalls. `debugfs` still uses internal ext2fs library entrypoints, so these calls were never intercepted.
+
+**Conclusion:** On macOS, reliably injecting a privileged FD into `debugfs` without running as root is not feasible due to security constraints and the internal design of `e2fsprogs` libraries.
+
+---
+
+### Official macOS Helper Approach
+
+A robust and user-friendly solution is to install a **Privileged Helper Tool**—the same pattern used by tools like the **Raspberry Pi Imager** and other Apple-approved installers:
+
+1. Ship a small root-owned helper (via `SMJobBless` or a `launchd` daemon).
+2. Use macOS **Authorization Services** in the unprivileged Electron app to authenticate the user (Touch ID or password) and grant rights.
+3. Communicate securely over XPC from the UI to the helper.
+4. The helper, running as root, opens the raw device and executes `debugfs` commands, returning results to the UI.
+5. Only the helper runs as root; the main Electron UI remains unprivileged.
+
+Implementing a helper tool requires code signing, a `launchd` plist, and an XPC interface, but provides the cleanest, most secure, and GUI-friendly way to browse Linux disks on macOS without `sudo`.
 
 ## Getting Started (Developers)
 
