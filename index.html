@@ -327,6 +327,7 @@
 				</div>
 			
 				<button @click="createNewDirectory" style="margin-left: 15px;" title="Create New Folder" class="action-icon-only"><i class="fa-solid fa-folder-plus"></i></button>
+				<button v-if="currentDev" @click="showFilesystemInfo" title="Show Filesystem Info" class="action-icon-only" style="margin-left:8px;"><i class="fa-solid fa-hard-drive"></i></button>
 				<!-- Filter toggle & input -->
 				<button v-if="!filterVisible" @click="toggleFilter()" title="Filter (⌘F)" class="action-icon-only" style="margin-left:8px;"><i class="fa-solid fa-filter"></i></button>
 				<div v-if="filterVisible" style="display:flex; align-items:center; margin-left:8px; gap:6px;">
@@ -647,6 +648,11 @@
 			.then(({ stdout, stderr }) => (stdout.trim() || stderr.trim()))
 	}
 
+	function getFilesystemInfo(device) {
+		return debugUtils.runDebugFs(device, 'stats')
+			.then(({ stdout, stderr }) => (stdout.trim() || stderr.trim()))
+	}
+
 	function readFileContent(device, filePath) {
 		return debugUtils.runDebugFs(device, `cat ${filePath}`, { maxBuffer: 1024 * 1024 * 5 })
 			.then(({ stdout, stderr }) => {
@@ -957,6 +963,24 @@
 				}
 			},
 			// ---- New Methods ----
+			async showFilesystemInfo() {
+				if (!this.currentDev) return
+				this.loading = true
+				this.status = `Getting filesystem info for ${this.currentDev}...`
+				this.error = null
+				this.currentItemName = `${this.currentDev} filesystem`
+				try {
+					this.infoContent = await getFilesystemInfo(this.currentDev)
+					this.showInfoModal = true
+					this.status = `Showing filesystem info for ${this.currentDev}`
+				} catch (e) {
+					this.error = `Failed to get filesystem info: ${e.message}`
+					console.error(e)
+					this.status = `Error getting filesystem info for ${this.currentDev}`
+				} finally {
+					this.loading = false
+				}
+			},
 			async showInfo(item) {
 				this.loading = true
 				this.status = `Getting info for ${item.name}...`

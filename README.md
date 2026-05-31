@@ -180,6 +180,7 @@ This table tracks which core `debugfs` commands and other relevant `e2fsprogs` f
 | Upload File (Write)       |     `[x]`    | `debugfs write`                                                  |
 | Upload Directory          |     `[x]`    | `debugfs mkdir` + recursive `debugfs write`                    |
 | Preview Text File         |     `[x]`    | `debugfs cat`                                                    |
+| Filesystem Info Display   |     `[x]`    | `debugfs stats`                                                  |
 | Change Directory (Internal)|    `[x]`    | Path management within GUI, uses full paths for commands         |
 | **Other `debugfs` Commands**|              |                                                                  |
 | `blocks`                  |     `[ ]`    | Dump blocks used by an inode                                     |
@@ -216,7 +217,7 @@ This table tracks which core `debugfs` commands and other relevant `e2fsprogs` f
 | `set_inode_field`         |     `[ ]`    | Modify inode field                                               |
 | `set_super_value`         |     `[ ]`    | Modify superblock field                                          |
 | `seti`                    |     `[ ]`    | Mark inode as used                                               |
-| `show_super_stats`/`stats`|     `[ ]`    | Show superblock statistics                                         |
+| `show_super_stats`/`stats`|     `[x]`    | Show superblock statistics                                         |
 | `symlink`                 |     `[ ]`    | Create symbolic link                                             |
 | `testb`                   |     `[ ]`    | Test if block is used                                            |
 | `testi`                   |     `[ ]`    | Test if inode is used                                            |
@@ -235,7 +236,6 @@ This table tracks which core `debugfs` commands and other relevant `e2fsprogs` f
 
 ## Future Work / TODOs
 
-*   **Filesystem Info Display:** Add a view to show superblock details and enabled filesystem features (using `debugfs stats` or `dumpe2fs`).
 *   **File Fragmentation Info:** Add an action to display fragmentation details for a selected file (using `debugfs filefrag`).
 *   **Directory Search:** Implement a simple search within the current directory (using `debugfs dirsearch`).
 *   **Extent Tree View:** Add an action to visualize the extent tree for a file (using `debugfs dump_extents`).
